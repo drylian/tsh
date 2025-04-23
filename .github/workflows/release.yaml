@@ -23,7 +23,7 @@ jobs:
       - name: Installing dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Caeljs
+      - name: Build Tsh
         run: bun run build
 
       - name: Remove unnecessary files 
