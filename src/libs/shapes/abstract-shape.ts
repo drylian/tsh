@@ -7,8 +7,6 @@ export abstract class AbstractShape<T> {
     public _default?: T;
     public _pretransforms: any[] = [];
     public _key = this.defKey();  
-    public _important = false;
-    public _save_default = false;
     public _optional = false;
     public _nullable = false;
     public _commit?: string;
@@ -57,11 +55,6 @@ export abstract class AbstractShape<T> {
         } else {
             this._pretransforms.push(value);
         }
-        return this;
-    }
-
-    important(): this {
-        this._important = true;
         return this;
     }
 
