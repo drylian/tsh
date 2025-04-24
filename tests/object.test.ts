@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { c } from "../src/Tsh";
+import { t } from "../src/Tsh";
 
 describe("ObjectShape", () => {
   test("basic object validation", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number()
     });
 
     const valid = { name: "John", age: 30 };
@@ -20,8 +20,8 @@ describe("ObjectShape", () => {
   });
 
   test("optional object", () => {
-    const schema = c.object({
-      name: c.string()
+    const schema = t.object({
+      name: t.string()
     }).optional();
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
@@ -30,8 +30,8 @@ describe("ObjectShape", () => {
   });
 
   test("nullable object", () => {
-    const schema = c.object({
-      name: c.string()
+    const schema = t.object({
+      name: t.string()
     }).nullable();
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
@@ -40,8 +40,8 @@ describe("ObjectShape", () => {
   });
 
   test("object with default", () => {
-    const schema = c.object({
-      name: c.string()
+    const schema = t.object({
+      name: t.string()
     }).default({ name: "Default" });
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
@@ -52,10 +52,10 @@ describe("ObjectShape", () => {
   });
 
   test("nested objects", () => {
-    const schema = c.object({
-      user: c.object({
-        name: c.string(),
-        age: c.number()
+    const schema = t.object({
+      user: t.object({
+        name: t.string(),
+        age: t.number()
       })
     });
 
@@ -67,8 +67,8 @@ describe("ObjectShape", () => {
   });
 
   test("object with arrays", () => {
-    const schema = c.object({
-      tags: c.array(c.string())
+    const schema = t.object({
+      tags: t.array(t.string())
     });
 
     const valid = { tags: ["a", "b"] };
@@ -79,9 +79,9 @@ describe("ObjectShape", () => {
   });
 
   test("partial object", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number()
     }).partial();
 
     const valid1 = { name: "John", age: 30 };
@@ -99,8 +99,8 @@ describe("ObjectShape", () => {
   });
 
   test("merge objects", () => {
-    const schema1 = c.object({ name: c.string() });
-    const schema2 = c.object({ age: c.number() });
+    const schema1 = t.object({ name: t.string() });
+    const schema2 = t.object({ age: t.number() });
     const merged = schema1.merge(schema2);
 
     const valid = { name: "John", age: 30 };
@@ -111,10 +111,10 @@ describe("ObjectShape", () => {
   });
 
   test("pick properties", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number(),
-      email: c.string().email()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number(),
+      email: t.string().email()
     }).pick(["name", "age"]);
 
     const valid = { name: "John", age: 30 };
@@ -127,10 +127,10 @@ describe("ObjectShape", () => {
   });
 
   test("omit properties", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number(),
-      email: c.string().email()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number(),
+      email: t.string().email()
     }).omit(["email"]);
 
     const valid = { name: "John", age: 30 };
@@ -143,8 +143,8 @@ describe("ObjectShape", () => {
   });
 
   test("hasProperty", () => {
-    const schema = c.object({
-      name: c.string()
+    const schema = t.object({
+      name: t.string()
     }).hasProperty("name");
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
@@ -152,8 +152,8 @@ describe("ObjectShape", () => {
   });
 
   test("forbiddenProperty", () => {
-    const schema = c.object({
-      name: c.string()
+    const schema = t.object({
+      name: t.string()
     }).forbiddenProperty("secret" as never);
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
@@ -161,9 +161,9 @@ describe("ObjectShape", () => {
   });
 
   test("exactProperties", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number()
     }).exactProperties(2);
 
     const valid = { name: "John", age: 30 };
@@ -179,9 +179,9 @@ describe("ObjectShape", () => {
   });
 
   test("minProperties", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number()
     }).minProperties(1);
 
     const valid1 = { name: "John" };
@@ -194,10 +194,10 @@ describe("ObjectShape", () => {
   });
 
   test("maxProperties", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number(),
-      extra: c.string().optional(),
+    const schema = t.object({
+      name: t.string(),
+      age: t.number(),
+      extra: t.string().optional(),
     }).minProperties(1).maxProperties(2);
 
     const valid1 = { name: "John" };
@@ -209,8 +209,8 @@ describe("ObjectShape", () => {
   });
 
   test("propertyValue", () => {
-    const schema = c.object({
-      age: c.number()
+    const schema = t.object({
+      age: t.number()
     }).propertyValue("age", (age) => age >= 18);
 
     const valid = { age: 20 };
@@ -221,8 +221,8 @@ describe("ObjectShape", () => {
   });
 
   test("nonEmpty", () => {
-    const schema = c.object({
-      name: c.string()
+    const schema = t.object({
+      name: t.string()
     }).nonEmpty();
 
     const valid = { name: "John" };
@@ -233,17 +233,17 @@ describe("ObjectShape", () => {
   });
 
   test("complex nested structure", () => {
-    const schema = c.object({
-      id: c.string().uuid(),
-      user: c.object({
-        name: c.string(),
-        age: c.number().min(18),
-        contacts: c.array(c.object({
-          type: c.enum(["email", "phone"]),
-          value: c.string()
+    const schema = t.object({
+      id: t.string().uuid(),
+      user: t.object({
+        name: t.string(),
+        age: t.number().min(18),
+        contacts: t.array(t.object({
+          type: t.enum(["email", "phone"]),
+          value: t.string()
         }))
       }),
-      metadata: c.object({}).partial()
+      metadata: t.object({}).partial()
     });
 
     const valid = {
@@ -276,12 +276,12 @@ describe("ObjectShape", () => {
   });
 
   test("partial with nested objects", () => {
-    const schema = c.object({
-      user: c.object({
-        name: c.string(),
-        age: c.number()
+    const schema = t.object({
+      user: t.object({
+        name: t.string(),
+        age: t.number()
       }),
-      valor:c.string()
+      valor:t.string()
     }).partial();
 
     const valid1 = { user: { name: "John", age: 30 } };
@@ -296,10 +296,10 @@ describe("ObjectShape", () => {
   });
 
   test("deepPartial with nested objects", () => {
-    const schema = c.object({
-      user: c.object({
-        name: c.string(),
-        age: c.number()
+    const schema = t.object({
+      user: t.object({
+        name: t.string(),
+        age: t.number()
       })
     }).deepPartial();
 
@@ -315,9 +315,9 @@ const valor =schema.parse(valid1)
   });
 
   test("default with partial", () => {
-    const schema = c.object({
-      name: c.string(),
-      age: c.number()
+    const schema = t.object({
+      name: t.string(),
+      age: t.number()
     })
       .partial()
       .default({ name: "Default" });

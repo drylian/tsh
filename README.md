@@ -23,18 +23,18 @@ yarn add @caeljs/tsh
 ## Basic Usage
 
 ```typescript
-import { c } from '@caeljs/tsh';
+import { t } from '@caeljs/tsh';
 
 // Define a schema
 const userSchema = object({
-  name: c.string().required(),
-  age: c.number().positive().int(),
-  email: c.string().email(),
-  tags: c.array(c.string()).minLength(1),
+  name: t.string().required(),
+  age: t.number().positive().int(),
+  email: t.string().email(),
+  tags: t.array(t.string()).minLength(1),
 });
 
 // Validate data
-const result = c.validate({
+const result = t.validate({
   name: "Drylian",
   age: 23,
   email: "drylian@example.com",
@@ -52,18 +52,18 @@ if (result.success) {
 
 ### Primitive Validators
 
-- `c.string()` - Validates string values
-- `c.number()` - Validates number values
-- `c.boolean()` - Validates boolean values
-- `c.any()` - Accepts any value
-- `c.enum()` - Validates against enum values
+- `t.string()` - Validates string values
+- `t.number()` - Validates number values
+- `t.boolean()` - Validates boolean values
+- `t.any()` - Accepts any value
+- `t.enum()` - Validates against enum values
 
 ### Complex Validators
 
-- `c.object(shape)` - Validates object structures
-- `c.array(shape)` - Validates arrays
-- `c.record(keyShape, valueShape)` - Validates dictionary/map structures
-- `c.union(shapes)` - Validates against multiple possible shapes
+- `t.object(shape)` - Validates object structures
+- `t.array(shape)` - Validates arrays
+- `t.record(keyShape, valueShape)` - Validates dictionary/map structures
+- `t.union(shapes)` - Validates against multiple possible shapes
 
 ## Modifiers
 
@@ -77,67 +77,67 @@ if (result.success) {
 
 ### Validation
 
-- `c.validate(value, shape)` - Validates a value against a shape
-- `c.isValid(value, shape)` - Checks if a value is valid
+- `t.validate(value, shape)` - Validates a value against a shape
+- `t.isValid(value, shape)` - Checks if a value is valid
 
 ### Object Manipulation
 
-- `c.pick(shape, keys)` - Creates a shape with only specified keys
-- `c.omit(shape, keys)` - Creates a shape without specified keys
-- `c.merge(shape1, shape2)` - Merges two object shapes
-- `c.extend(shape, extensions)` - Extends an object shape
+- `t.pick(shape, keys)` - Creates a shape with only specified keys
+- `t.omit(shape, keys)` - Creates a shape without specified keys
+- `t.merge(shape1, shape2)` - Merges two object shapes
+- `t.extend(shape, extensions)` - Extends an object shape
 
 ### Array Utilities
 
-- `c.nonEmptyArray(shape)` - Requires non-empty arrays
-- `c.uniqueArray(shape)` - Requires unique array elements
-- `c.minLength(shape, min)` - Sets minimum array length
-- `c.maxLength(shape, max)` - Sets maximum array length
+- `t.nonEmptyArray(shape)` - Requires non-empty arrays
+- `t.uniqueArray(shape)` - Requires unique array elements
+- `t.minLength(shape, min)` - Sets minimum array length
+- `t.maxLength(shape, max)` - Sets maximum array length
 
 ## Common Validators
 
 ### String Validators
 
-- `c.email()` - Validates email format
-- `c.uuid()` - Validates UUID format
-- `c.url()` - Validates URL format
-- `c.ip()` - Validates IP address
-- `c.regex(pattern)` - Validates against regex
+- `t.email()` - Validates email format
+- `t.uuid()` - Validates UUID format
+- `t.url()` - Validates URL format
+- `t.ip()` - Validates IP address
+- `t.regex(pattern)` - Validates against regex
 
 ### Number Validators
 
-- `c.int()` - Validates integers
-- `c.positive()` - Validates positive numbers
-- `c.negative()` - Validates negative numbers
-- `c.port()` - Validates port numbers
-- `c.percentage()` - Validates percentages
+- `t.int()` - Validates integers
+- `t.positive()` - Validates positive numbers
+- `t.negative()` - Validates negative numbers
+- `t.port()` - Validates port numbers
+- `t.percentage()` - Validates percentages
 
 ## Advanced Features
 
 ### Logical Operators
 
-- `c.and(shape1, shape2)` - Requires both shapes to match (intersection)
-- `c.or(shape1, shape2)` - Requires either shape to match (union)
-- `c.not(shape)` - Requires value to NOT match shape
+- `t.and(shape1, shape2)` - Requires both shapes to match (intersection)
+- `t.or(shape1, shape2)` - Requires either shape to match (union)
+- `t.not(shape)` - Requires value to NOT match shape
 
 ### Coercion
 
 ```typescript
-import { c } from '@caeljs/tsh';
+import { t } from '@caeljs/tsh';
 
 // Coerce values to specific types
-const coercedString = c.coerce.string(); // Converts value to string
-const coercedNumber = c.coerce.number(); // Converts value to number
-const coercedBoolean = c.coerce.boolean(); // Converts value to boolean
+const coercedString = t.coerce.string(); // Converts value to string
+const coercedNumber = t.coerce.number(); // Converts value to number
+const coercedBoolean = t.coerce.boolean(); // Converts value to boolean
 ```
 
 ### Custom Validators
 
 ```typescript
-import { custom } from '@caeljs/tsh';
+import { t } from '@caeljs/tsh';
 
 // Create custom validator
-const evenNumber = custom(
+const evenNumber = t.custom(
   (value): value is number => typeof value === 'number' && value % 2 === 0,
   'Value must be an even number'
 );
@@ -164,12 +164,12 @@ try {
 The library provides full TypeScript type inference:
 
 ```typescript
-const userSchema = object({
-  name: string(),
-  age: number(),
+const userSchema = t.object({
+  name: t.string(),
+  age: t.number(),
 });
 
-type User = InferShapeType<typeof userSchema>;
+type User = t.infer<typeof userSchema>;
 // Equivalent to:
 // type User = {
 //   name: string;
@@ -182,9 +182,9 @@ type User = InferShapeType<typeof userSchema>;
 ```typescript
 import { random, randomInt, randomUuid } from '@caeljs/tsh';
 
-random(); // Random string
-randomInt(1, 100); // Random integer between 1-100
-randomUuid(); // Random UUID v4
+t.random(); // Random string
+t.randomInt(1, 100); // Random integer between 1-100
+t.randomUuid(); // Random UUID v4
 ```
 
 ## Contributing
@@ -193,18 +193,5 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+MIT
 ```
-
-This README includes:
-
-1. A clear description of the library's purpose
-2. Installation instructions
-3. Basic usage example
-4. Comprehensive documentation of all validators and utilities
-5. Type safety information
-6. Error handling details
-7. Advanced features
-8. Contribution guidelines
-
-The documentation is organized in a logical flow from basic to advanced usage, making it easy for new users to get started while still providing complete reference material for experienced users.

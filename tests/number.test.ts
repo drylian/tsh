@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { c } from "../src/Tsh";
+import { t } from "../src/Tsh";
 
 describe("NumberShape", () => {
   test("basic number validation", () => {
-    const schema = c.number();
+    const schema = t.number();
     expect(schema.parse(42)).toBe(42);
     expect(() => schema.parse("42")).toThrow();
     expect(() => schema.parse(null)).toThrow();
@@ -11,28 +11,28 @@ describe("NumberShape", () => {
   });
 
   test("optional number", () => {
-    const schema = c.number().optional();
+    const schema = t.number().optional();
     expect(schema.parse(42)).toBe(42);
     expect(schema.parse(undefined)).toBeUndefined();
     expect(() => schema.parse(null)).toThrow();
   });
 
   test("nullable number", () => {
-    const schema = c.number().nullable();
+    const schema = t.number().nullable();
     expect(schema.parse(42)).toBe(42);
     expect(schema.parse(null)).toBeNull();
     expect(() => schema.parse(undefined)).toThrow();
   });
 
   test("number with default", () => {
-    const schema = c.number().default(42);
+    const schema = t.number().default(42);
     expect(schema.parse(10)).toBe(10);
     expect(schema.parse(undefined)).toBe(42);
     expect(() => schema.parse(null)).toThrow();
   });
 
   test("coercion", () => {
-    const schema = c.number().coerce();
+    const schema = t.number().coerce();
     expect(schema.parse("42")).toBe(42);
     expect(schema.parse(true)).toBe(1);
     expect(schema.parse(false)).toBe(0);
@@ -42,21 +42,21 @@ describe("NumberShape", () => {
   });
 
   test("min value", () => {
-    const schema = c.number().min(10);
+    const schema = t.number().min(10);
     expect(schema.parse(10)).toBe(10);
     expect(schema.parse(11)).toBe(11);
     expect(() => schema.parse(9)).toThrow();
   });
 
   test("max value", () => {
-    const schema = c.number().max(10);
+    const schema = t.number().max(10);
     expect(schema.parse(10)).toBe(10);
     expect(schema.parse(9)).toBe(9);
     expect(() => schema.parse(11)).toThrow();
   });
 
   test("range", () => {
-    const schema = c.number().range(10, 20);
+    const schema = t.number().range(10, 20);
     expect(schema.parse(10)).toBe(10);
     expect(schema.parse(15)).toBe(15);
     expect(schema.parse(20)).toBe(20);
@@ -65,41 +65,41 @@ describe("NumberShape", () => {
   });
 
   test("integer", () => {
-    const schema = c.number().int();
+    const schema = t.number().int();
     expect(schema.parse(42)).toBe(42);
     expect(() => schema.parse(42.5)).toThrow();
   });
 
   test("positive", () => {
-    const schema = c.number().positive();
+    const schema = t.number().positive();
     expect(schema.parse(1)).toBe(1);
     expect(() => schema.parse(0)).toThrow();
     expect(() => schema.parse(-1)).toThrow();
   });
 
   test("nonNegative", () => {
-    const schema = c.number().nonNegative();
+    const schema = t.number().nonNegative();
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(1)).toBe(1);
     expect(() => schema.parse(-1)).toThrow();
   });
 
   test("negative", () => {
-    const schema = c.number().negative();
+    const schema = t.number().negative();
     expect(schema.parse(-1)).toBe(-1);
     expect(() => schema.parse(0)).toThrow();
     expect(() => schema.parse(1)).toThrow();
   });
 
   test("nonPositive", () => {
-    const schema = c.number().nonPositive();
+    const schema = t.number().nonPositive();
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(-1)).toBe(-1);
     expect(() => schema.parse(1)).toThrow();
   });
 
   test("finite", () => {
-    const schema = c.number().finite();
+    const schema = t.number().finite();
     expect(schema.parse(42)).toBe(42);
     expect(() => schema.parse(Infinity)).toThrow();
     expect(() => schema.parse(-Infinity)).toThrow();
@@ -107,7 +107,7 @@ describe("NumberShape", () => {
   });
 
   test("safe integer", () => {
-    const schema = c.number().safe();
+    const schema = t.number().safe();
     expect(schema.parse(Number.MAX_SAFE_INTEGER)).toBe(Number.MAX_SAFE_INTEGER);
     expect(schema.parse(Number.MIN_SAFE_INTEGER)).toBe(Number.MIN_SAFE_INTEGER);
     expect(() => schema.parse(Number.MAX_SAFE_INTEGER + 1)).toThrow();
@@ -115,21 +115,21 @@ describe("NumberShape", () => {
   });
 
   test("multipleOf", () => {
-    const schema = c.number().multipleOf(5);
+    const schema = t.number().multipleOf(5);
     expect(schema.parse(10)).toBe(10);
     expect(schema.parse(15)).toBe(15);
     expect(() => schema.parse(11)).toThrow();
   });
 
   test("decimal places", () => {
-    const schema = c.number().decimal(2);
+    const schema = t.number().decimal(2);
     expect(schema.parse(1.23)).toBe(1.23);
     expect(schema.parse(1)).toBe(1);
     expect(() => schema.parse(1.234)).toThrow();
   });
 
   test("exact decimal places", () => {
-    const schema = c.number().exactDecimal(2);
+    const schema = t.number().exactDecimal(2);
     expect(schema.parse(1.23)).toBe(1.23);
     expect(() => schema.parse(1)).toThrow();
     expect(() => schema.parse(1.2)).toThrow();
@@ -137,7 +137,7 @@ describe("NumberShape", () => {
   });
 
   test("precision", () => {
-    const schema = c.number().precision(4);
+    const schema = t.number().precision(4);
     expect(schema.parse(1234)).toBe(1234);
     expect(schema.parse(1.234)).toBe(1.234);
     expect(() => schema.parse(12345)).toThrow();
@@ -145,21 +145,21 @@ describe("NumberShape", () => {
   });
 
   test("equals", () => {
-    const schema = c.number().equals(42);
+    const schema = t.number().equals(42);
     expect(schema.parse(42)).toBe(42);
     expect(() => schema.parse(41)).toThrow();
     expect(() => schema.parse(43)).toThrow();
   });
 
   test("notEquals", () => {
-    const schema = c.number().notEquals(42);
+    const schema = t.number().notEquals(42);
     expect(schema.parse(41)).toBe(41);
     expect(schema.parse(43)).toBe(43);
     expect(() => schema.parse(42)).toThrow();
   });
 
   test("oneOf", () => {
-    const schema = c.number().oneOf([1, 2, 3]);
+    const schema = t.number().oneOf([1, 2, 3]);
     expect(schema.parse(1)).toBe(1);
     expect(schema.parse(2)).toBe(2);
     expect(schema.parse(3)).toBe(3);
@@ -167,7 +167,7 @@ describe("NumberShape", () => {
   });
 
   test("notOneOf", () => {
-    const schema = c.number().notOneOf([1, 2, 3]);
+    const schema = t.number().notOneOf([1, 2, 3]);
     expect(schema.parse(4)).toBe(4);
     expect(schema.parse(5)).toBe(5);
     expect(() => schema.parse(1)).toThrow();
@@ -176,7 +176,7 @@ describe("NumberShape", () => {
   });
 
   test("port number", () => {
-    const schema = c.number().port();
+    const schema = t.number().port();
     expect(schema.parse(1)).toBe(1);
     expect(schema.parse(8080)).toBe(8080);
     expect(schema.parse(65535)).toBe(65535);
@@ -186,7 +186,7 @@ describe("NumberShape", () => {
   });
 
   test("latitude", () => {
-    const schema = c.number().latitude();
+    const schema = t.number().latitude();
     expect(schema.parse(-90)).toBe(-90);
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(90)).toBe(90);
@@ -195,7 +195,7 @@ describe("NumberShape", () => {
   });
 
   test("longitude", () => {
-    const schema = c.number().longitude();
+    const schema = t.number().longitude();
     expect(schema.parse(-180)).toBe(-180);
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(180)).toBe(180);
@@ -204,7 +204,7 @@ describe("NumberShape", () => {
   });
 
   test("percentage", () => {
-    const schema = c.number().percentage();
+    const schema = t.number().percentage();
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(50)).toBe(50);
     expect(schema.parse(100)).toBe(100);
@@ -213,7 +213,7 @@ describe("NumberShape", () => {
   });
 
   test("probability", () => {
-    const schema = c.number().probability();
+    const schema = t.number().probability();
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(0.5)).toBe(0.5);
     expect(schema.parse(1)).toBe(1);
@@ -222,7 +222,7 @@ describe("NumberShape", () => {
   });
 
   test("byte", () => {
-    const schema = c.number().byte();
+    const schema = t.number().byte();
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(128)).toBe(128);
     expect(schema.parse(255)).toBe(255);
@@ -232,7 +232,7 @@ describe("NumberShape", () => {
   });
 
   test("natural number", () => {
-    const schema = c.number().natural();
+    const schema = t.number().natural();
     expect(schema.parse(0)).toBe(0);
     expect(schema.parse(1)).toBe(1);
     expect(() => schema.parse(-1)).toThrow();
@@ -240,7 +240,7 @@ describe("NumberShape", () => {
   });
 
   test("whole number", () => {
-    const schema = c.number().whole();
+    const schema = t.number().whole();
     expect(schema.parse(1)).toBe(1);
     expect(schema.parse(2)).toBe(2);
     expect(() => schema.parse(0)).toThrow();
@@ -249,7 +249,7 @@ describe("NumberShape", () => {
   });
 
   test("chained validations", () => {
-    const schema = c.number()
+    const schema = t.number()
       .int()
       .positive()
       .max(100)

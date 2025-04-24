@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { c } from "../src/Tsh";
+import { t } from "../src/Tsh";
 
 describe("RecordShape", () => {
     test("basic record validation", () => {
-        const schema = c.record(c.string(), c.number());
+        const schema = t.record(t.string(), t.number());
         const validRecord = { a: 1, b: 2 };
         const invalidRecord = { a: "one", b: 2 };
 
@@ -13,59 +13,59 @@ describe("RecordShape", () => {
     });
 
     test("optional record", () => {
-        const schema = c.record(c.string(), c.number()).optional();
+        const schema = t.record(t.string(), t.number()).optional();
         expect(schema.parse({ a: 1 })).toEqual({ a: 1 });
         expect(schema.parse(undefined)).toBeUndefined();
         expect(() => schema.parse(null)).toThrow();
     });
 
     test("nullable record", () => {
-        const schema = c.record(c.string(), c.number()).nullable();
+        const schema = t.record(t.string(), t.number()).nullable();
         expect(schema.parse({ a: 1 })).toEqual({ a: 1 });
         expect(schema.parse(null)).toBeNull();
         expect(() => schema.parse(undefined)).toThrow();
     });
 
     test("record with default", () => {
-        const schema = c.record(c.string(), c.number()).default({ default: 0 });
+        const schema = t.record(t.string(), t.number()).default({ default: 0 });
         expect(schema.parse({ a: 1 })).toEqual({ a: 1 });
         expect(schema.parse(undefined)).toEqual({ default: 0 });
         expect(() => schema.parse(null)).toThrow();
     });
 
     test("minProperties", () => {
-        const schema = c.record(c.string(), c.number()).minProperties(2);
+        const schema = t.record(t.string(), t.number()).minProperties(2);
         expect(schema.parse({ a: 1, b: 2 })).toEqual({ a: 1, b: 2 });
         expect(() => schema.parse({ a: 1 })).toThrow();
     });
 
     test("maxProperties", () => {
-        const schema = c.record(c.string(), c.number()).maxProperties(2);
+        const schema = t.record(t.string(), t.number()).maxProperties(2);
         expect(schema.parse({ a: 1, b: 2 })).toEqual({ a: 1, b: 2 });
         expect(() => schema.parse({ a: 1, b: 2, c: 3 })).toThrow();
     });
 
     test("exactProperties", () => {
-        const schema = c.record(c.string(), c.number()).exactProperties(2);
+        const schema = t.record(t.string(), t.number()).exactProperties(2);
         expect(schema.parse({ a: 1, b: 2 })).toEqual({ a: 1, b: 2 });
         expect(() => schema.parse({ a: 1 })).toThrow();
         expect(() => schema.parse({ a: 1, b: 2, c: 3 })).toThrow();
     });
 
     test("hasProperty", () => {
-        const schema = c.record(c.string(), c.number()).hasProperty("required");
+        const schema = t.record(t.string(), t.number()).hasProperty("required");
         expect(schema.parse({ required: 1 })).toEqual({ required: 1 });
         expect(() => schema.parse({ other: 1 })).toThrow();
     });
 
     test("forbiddenProperty", () => {
-        const schema = c.record(c.string(), c.number()).forbiddenProperty("secret");
+        const schema = t.record(t.string(), t.number()).forbiddenProperty("secret");
         expect(schema.parse({ public: 1 })).toEqual({ public: 1 });
         expect(() => schema.parse({ secret: 1 })).toThrow();
     });
 
     test("propertyValue", () => {
-        const schema = c.record(c.string(), c.number())
+        const schema = t.record(t.string(), t.number())
             .propertyValue("age", (val) => val >= 18);
 
         expect(schema.parse({ age: 20 })).toEqual({ age: 20 });
@@ -73,21 +73,21 @@ describe("RecordShape", () => {
     });
 
     test("propertyShape", () => {
-        const schema = c.record(c.string(), c.number())
-            .propertyShape("age", c.number().min(18));
+        const schema = t.record(t.string(), t.number())
+            .propertyShape("age", t.number().min(18));
 
         expect(schema.parse({ age: 20 })).toEqual({ age: 20 });
         expect(() => schema.parse({ age: 15 })).toThrow();
     });
 
     test("nonEmpty", () => {
-        const schema = c.record(c.string(), c.number()).nonEmpty();
+        const schema = t.record(t.string(), t.number()).nonEmpty();
         expect(schema.parse({ a: 1 })).toEqual({ a: 1 });
         expect(() => schema.parse({})).toThrow();
     });
 
     test("propertyNames", () => {
-        const schema = c.record(c.string(), c.number())
+        const schema = t.record(t.string(), t.number())
             .propertyNames((key) => key.length <= 3);
 
         expect(schema.parse({ abc: 1 })).toEqual({ abc: 1 });
@@ -95,7 +95,7 @@ describe("RecordShape", () => {
     });
 
     test("propertyValues", () => {
-        const schema = c.record(c.string(), c.number())
+        const schema = t.record(t.string(), t.number())
             .propertyValues((val) => val > 0);
 
         expect(schema.parse({ a: 1, b: 2 })).toEqual({ a: 1, b: 2 });
@@ -103,10 +103,10 @@ describe("RecordShape", () => {
     });
 
     test("exactPropertiesShape", () => {
-        const schema = c.record(c.string(), c.any())
+        const schema = t.record(t.string(), t.any())
             .exactPropertiesShape({
-                name: c.string(),
-                age: c.number().min(18)
+                name: t.string(),
+                age: t.number().min(18)
             });
 
         const valid = { name: "John", age: 30 };
@@ -121,15 +121,15 @@ describe("RecordShape", () => {
     });
 
     test("complex key types", () => {
-        const schema = c.record(c.enum(["a", "b"] as const), c.number());
+        const schema = t.record(t.enum(["a", "b"] as const), t.number());
         expect(schema.parse({ a: 1, b: 2 })).toEqual({ a: 1, b: 2 });
         expect(() => schema.parse({ c: 3 })).toThrow();
     });
 
     test("nested records", () => {
-        const schema = c.record(
-            c.string(),
-            c.record(c.string(), c.number())
+        const schema = t.record(
+            t.string(),
+            t.record(t.string(), t.number())
         );
 
         const valid = { user: { age: 30 } };
@@ -140,7 +140,7 @@ describe("RecordShape", () => {
     });
 
     test("chained validations", () => {
-        const schema = c.record(c.string(), c.number())
+        const schema = t.record(t.string(), t.number())
             .minProperties(1)
             .maxProperties(3)
             .hasProperty("required")

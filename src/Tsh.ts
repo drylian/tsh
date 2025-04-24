@@ -1,4 +1,4 @@
 export * from "./libs";
-import * as c from "./libs";
-export { c }
-export default c;
+import * as t from "./libs";
+export { t }
+export default t;

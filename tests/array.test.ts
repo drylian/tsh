@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { c } from "../src/Tsh";
+import { t } from "../src/Tsh";
 
 describe("ArrayShape", () => {
   test("basic array validation", () => {
-    const schema = c.array(c.string());
+    const schema = t.array(t.string());
     expect(schema.parse(["a", "b"])).toEqual(["a", "b"]);
     expect(() => schema.parse("not an array")).toThrow();
     expect(() => schema.parse([1, 2])).toThrow();
@@ -12,82 +12,82 @@ describe("ArrayShape", () => {
   });
 
   test("optional array", () => {
-    const schema = c.array(c.string()).optional();
+    const schema = t.array(t.string()).optional();
     expect(schema.parse(["a"])).toEqual(["a"]);
     expect(schema.parse(undefined)).toBeUndefined();
     expect(() => schema.parse(null)).toThrow();
   });
 
   test("nullable array", () => {
-    const schema = c.array(c.string()).nullable();
+    const schema = t.array(t.string()).nullable();
     expect(schema.parse(["a"])).toEqual(["a"]);
     expect(schema.parse(null)).toBeNull();
     expect(() => schema.parse(undefined)).toThrow();
   });
 
   test("array with default", () => {
-    const schema = c.array(c.string()).default(["default"]);
+    const schema = t.array(t.string()).default(["default"]);
     expect(schema.parse(["a"])).toEqual(["a"]);
     expect(schema.parse(undefined)).toEqual(["default"]);
     expect(() => schema.parse(null)).toThrow();
   });
 
   test("min length", () => {
-    const schema = c.array(c.string()).min(2);
+    const schema = t.array(t.string()).min(2);
     expect(schema.parse(["a", "b"])).toEqual(["a", "b"]);
     expect(schema.parse(["a", "b", "c"])).toEqual(["a", "b", "c"]);
     expect(() => schema.parse(["a"])).toThrow();
   });
 
   test("max length", () => {
-    const schema = c.array(c.string()).max(2);
+    const schema = t.array(t.string()).max(2);
     expect(schema.parse(["a"])).toEqual(["a"]);
     expect(schema.parse(["a", "b"])).toEqual(["a", "b"]);
     expect(() => schema.parse(["a", "b", "c"])).toThrow();
   });
 
   test("exact length", () => {
-    const schema = c.array(c.string()).length(2);
+    const schema = t.array(t.string()).length(2);
     expect(schema.parse(["a", "b"])).toEqual(["a", "b"]);
     expect(() => schema.parse(["a"])).toThrow();
     expect(() => schema.parse(["a", "b", "c"])).toThrow();
   });
 
   test("nonEmpty", () => {
-    const schema = c.array(c.string()).nonEmpty();
+    const schema = t.array(t.string()).nonEmpty();
     expect(schema.parse(["a"])).toEqual(["a"]);
     expect(() => schema.parse([])).toThrow();
   });
 
   test("unique", () => {
-    const schema = c.array(c.string()).unique();
+    const schema = t.array(t.string()).unique();
     expect(schema.parse(["a", "b"])).toEqual(["a", "b"]);
     expect(() => schema.parse(["a", "a"])).toThrow();
   });
 
   test("includes", () => {
-    const schema = c.array(c.string()).includes("a");
+    const schema = t.array(t.string()).includes("a");
     expect(schema.parse(["a", "b"])).toEqual(["a", "b"]);
     expect(() => schema.parse(["b", "c"])).toThrow();
   });
 
   test("excludes", () => {
-    const schema = c.array(c.string()).excludes("a");
+    const schema = t.array(t.string()).excludes("a");
     expect(schema.parse(["b", "c"])).toEqual(["b", "c"]);
     expect(() => schema.parse(["a", "b"])).toThrow();
   });
 
   test("nested arrays", () => {
-    const schema = c.array(c.array(c.number()));
+    const schema = t.array(t.array(t.number()));
     expect(schema.parse([[1], [2, 3]])).toEqual([[1], [2, 3]]);
     expect(() => schema.parse([[1], ["2"]])).toThrow();
   });
 
   test("complex array elements", () => {
-    const schema = c.array(
-      c.object({
-        id: c.string().uuid(),
-        active: c.boolean()
+    const schema = t.array(
+      t.object({
+        id: t.string().uuid(),
+        active: t.boolean()
       })
     );
     
@@ -106,7 +106,7 @@ describe("ArrayShape", () => {
   });
 
   test("chained validations", () => {
-    const schema = c.array(c.number())
+    const schema = t.array(t.number())
       .min(1)
       .max(3)
       .unique()
@@ -119,10 +119,10 @@ describe("ArrayShape", () => {
   });
 
   test("error messages include paths", () => {
-    const schema = c.array(
-      c.object({
-        name: c.string(),
-        age: c.number()
+    const schema = t.array(
+      t.object({
+        name: t.string(),
+        age: t.number()
       })
     );
 
@@ -136,12 +136,12 @@ describe("ArrayShape", () => {
 
 
   test("empty array validation", () => {
-    const schema = c.array(c.any());
+    const schema = t.array(t.any());
     expect(schema.parse([])).toEqual([]);
   });
 
   test("array with mixed types", () => {
-    const schema = c.array(c.union([c.string(), c.number()]));
+    const schema = t.array(t.union([t.string(), t.number()]));
     expect(schema.parse(["a", 1])).toEqual(["a", 1] as never);
     expect(() => schema.parse(["a", true])).toThrow();
   });

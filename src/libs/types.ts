@@ -79,8 +79,8 @@ export type InferShapeType<T> =
   T extends (infer U)[] ? Array<InferShapeType<U>> :
   T;
 
-export type inferType<T> = InferShapeType<T>;
-export type infer<T> = inferType<T>;
+export type inferType<T> = TshViewer<InferShapeType<T>>;
+export type infer<T> = TshViewer<InferShapeType<T>>;
 export type InferUnionType<T extends PrimitiveShapes[]> =
   T extends [infer First, ...infer Rest]
   ? First extends PrimitiveShapes
