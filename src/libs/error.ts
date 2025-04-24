@@ -14,7 +14,7 @@ export class TshShapeError extends Error {
   public readonly value: unknown;
   public readonly shape: PrimitiveShapes;
   public readonly extra: object = {};
-  public readonly params:ReturnType<typeof this.shape.conf>;
+  public readonly params:ReturnType<InstanceType<typeof TshShapeError>['shape']['conf']>;
   public readonly key:string;
   public readonly path:string;
   constructor(options: TshShapeErrorConstructor) {
