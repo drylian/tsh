@@ -70,6 +70,7 @@ export type InferShapeType<T> =
   T extends AnyShape ? any :
   T extends EnumShape<infer U> ? U :
   T extends BaseShape<infer U> ? U :
+  T extends AbstractShape<infer U> ? U :
   T extends ArrayShape<infer U> ? Array<InferShapeType<U>> :
   T extends ObjectShape<infer U> ? { [K in keyof U]: InferShapeType<U[K]> } :
   T extends RecordShape<string, infer V> ? Record<string, InferShapeType<V>> :
