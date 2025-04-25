@@ -40,7 +40,7 @@ export class ArrayShape<T extends BaseShape<any>> extends BaseShape<Array<InferS
             throw new TshShapeError({
               ...opts,
               code: 'INVALID_LITERAL',
-              message: `Expected ${JSON.stringify(this._shape)}`,
+              message: `Expected ${this._shape}`,
               value: item,
               extra: {
                 key: `${this._key}[${index}]`,

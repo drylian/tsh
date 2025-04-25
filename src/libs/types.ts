@@ -11,25 +11,41 @@ import type { RecordShape } from "./shapes/record-shape";
 import type { StringShape } from "./shapes/string-shape";
 import type { UnionShape } from "./shapes/union-shape";
 
+export type TshOperation<T, U = T> = {
+  type: "transform" | "refine";
+  fn: (value: T) => U | boolean;
+  message: string;
+  code?: string;
+  extra?: object;
+  opts?: TshOptions;
+  next?: TshOperation<any>;
+};
+
 export type TshViewer<T> =
   T extends null | undefined ? T :
   T extends Array<infer E> ? Array<TshViewer<E>> :
   T extends object ? { [K in keyof T]: TshViewer<T[K]> } : T;
 
-export type ObjShape<T extends Record<string, PrimitiveShapes>> = {
+export type ObjShape<T extends Record<string, PrimitiveShapes>, Partial extends boolean = true> = Partial extends true ? {
   [K in keyof T]?: InferShapeType<T[K]>;
+} : {
+  [K in keyof T]: InferShapeType<T[K]>;
 };
 
 export type PartialObjShape<T extends Record<string, PrimitiveShapes>> = {
-  [K in keyof T]?: T[K] extends PrimitiveShapes ? T[K] : never
+  [K in keyof T]: T[K] extends PrimitiveShapes ? T[K] : never
 };
 
 export type DeepPartialObjShape<T extends Record<string, PrimitiveShapes>> = {
+  [K in keyof T]: T[K] extends Record<string, PrimitiveShapes>
+    ? DeepPartialInner<T[K]>
+    : T[K]
+};
+
+type DeepPartialInner<T extends Record<string, PrimitiveShapes>> = {
   [K in keyof T]?: T[K] extends Record<string, PrimitiveShapes>
-  ? DeepPartialObjShape<T[K]>
-  : T[K] extends PrimitiveShapes
-  ? T[K]
-  : never
+    ? DeepPartialInner<T[K]>
+    : T[K]
 };
 
 export type PrimitiveShapes =

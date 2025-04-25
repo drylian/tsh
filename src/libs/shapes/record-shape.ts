@@ -4,83 +4,93 @@ import { TshShapeError } from '../error';
 
 export class RecordShape<K extends string | number | symbol, V extends BaseShape<any>>
   extends BaseShape<Record<K, InferShapeType<V>>> {
-  public readonly _type = "record";
+    public readonly _type = "record";
 
-  constructor(
-    private readonly _keyShape: BaseShape<K>,
-    private readonly _valueShape: V
-  ) {
-    super();
-  }
-
-  getDefaults(): TshViewer<Record<K, InferShapeType<V>>> {
-    const result: Record<any, any> = {
-      ...(this._default ?? {})
-    };
-
-    if (typeof this._default !== 'undefined') {
-      return this._default as never;
+    constructor(
+      private readonly _keyShape: BaseShape<K>,
+      private readonly _valueShape: V
+    ) {
+      super();
     }
-
-    let key: K = this._keyShape._default as K;
-    let value: InferShapeType<V>;
-
-    if (this._valueShape instanceof BaseShape) {
-      if (typeof this._valueShape._default !== 'undefined') {
-        value = this._valueShape._default;
-      } else if ('getDefaults' in this._valueShape) {
-        value = (this._valueShape as any).getDefaults();
+  
+    getDefaults(): TshViewer<Record<K, InferShapeType<V>>> {
+      if (typeof this._default !== 'undefined') {
+        return this._default as never;
+      }
+  
+      const result: Record<any, any> = {};
+      const key: K = this._keyShape._default as K;
+      let value: InferShapeType<V>;
+  
+      if (this._valueShape instanceof BaseShape) {
+        value = typeof this._valueShape._default !== 'undefined'
+          ? this._valueShape._default
+          : 'getDefaults' in this._valueShape
+            ? (this._valueShape as any).getDefaults()
+            : {} as InferShapeType<V>;
       } else {
-        value = {} as InferShapeType<V>;
+        value = this._valueShape;
       }
-    } else {
-      value = this._valueShape;
+  
+      if (key) result[key] = value;
+      return result as never;
     }
-
-    if (key) result[key] = value;
-    return result as never;
-  }
-
-  //@ts-expect-error ignore
-  parse(value: unknown, opts?: TshOptions): TshViewer<Record<K, InferShapeType<V>>> {
-    if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
-    if (typeof value === "undefined" && this._optional) return undefined as never;
-    if (value === null && this._nullable) return null as never;
-
-    if (value === null || typeof value !== 'object') {
-      this.createError((value: unknown) => ({
-        code: opts?.code ?? 'NOT_OBJECT',
-        message: opts?.message ?? 'Expected an object',
-        value,
-        shape:this,
-        extra: { ...opts?.extra ?? {} },
-      }), value);
-    }
-
-    const result: Record<any, any> = {};
-    const input = value as Record<any, unknown>;
-
-    for (const key in input) {
-      try {
-        const parsedKey = this._keyShape.parseWithPath(key, `${this._key}[key]`);
-        result[parsedKey] = this._valueShape.parseWithPath(input[key], `${this._key}.${String(key)}`);
-      } catch (error) {
-        if (error instanceof TshShapeError) {
-          throw error;
-        }
+  
+    //@ts-expect-error more declarations
+    parse(value: unknown, opts?: TshOptions): TshViewer<Record<K, InferShapeType<V>>> {
+      // Early returns for default/optional/nullable cases
+      if (typeof value === "undefined") {
+        if (typeof this._default !== "undefined") return this._default as never;
+        if (this._optional) return undefined as never;
+      }
+      if (value === null) {
+        if (this._nullable) return null as never;
+      }
+  
+      // Fast object check
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
         this.createError((value: unknown) => ({
-          code: opts?.code ?? 'INVALID_PROPERTY',
-          message: opts?.message ?? `Invalid property "${key}"`,
+          code: opts?.code ?? 'NOT_OBJECT',
+          message: opts?.message ?? 'Expected an object',
           value,
-          shape:this,
-        extra: { ...opts?.extra ?? {}, property: key },
-        }), input[key]);
+          shape: this,
+          extra: { ...opts?.extra ?? {} },
+        }), value);
       }
+  
+      const result: Record<any, any> = {};
+      const input = value as Record<any, unknown>;
+      const hasOwn = Object.prototype.hasOwnProperty;
+      const keyShape = this._keyShape;
+      const valueShape = this._valueShape;
+      const currentKey = this._key;
+  
+      // Optimized for-in loop
+      for (const key in input) {
+        if (!hasOwn.call(input, key)) continue;
+  
+        try {
+          const parsedKey = keyShape.parseWithPath(key, currentKey ? `${currentKey}[key]` : '[key]');
+          result[parsedKey] = valueShape.parseWithPath(
+            input[key],
+            currentKey ? `${currentKey}.${String(key)}` : String(key)
+          );
+        } catch (error) {
+          if (error instanceof TshShapeError) throw error;
+          
+          this.createError((value: unknown) => ({
+            code: opts?.code ?? 'INVALID_PROPERTY',
+            message: opts?.message ?? `Invalid property "${key}"`,
+            value,
+            shape: this,
+            extra: { ...opts?.extra ?? {}, property: key },
+          }), input[key]);
+        }
+      }
+  
+      return this._operate(result) as never;
     }
-
-    return this._operate(result) as never;
-  }
-
+  
   minProperties(min: number, opts: TshOptions = {}): this {
     return this.refine(
       (val) => Object.keys(val).length >= min,

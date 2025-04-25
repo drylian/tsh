@@ -3,7 +3,7 @@ import { TshShapeError, type ErrorCreator } from "../error";
 import type { TshOptions } from "../types";
 
 export abstract class BaseShape<T> extends AbstractShape<T> {
-  readonly _type: string = "base";
+  public readonly _type: string = "base";
   protected createError(creator: ErrorCreator, value: unknown, opts?: TshOptions): never {
     const data = creator(value);
     throw new TshShapeError({

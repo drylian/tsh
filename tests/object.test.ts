@@ -35,6 +35,7 @@ describe("ObjectShape", () => {
     }).nullable();
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
+    console.log(schema.parse(null));
     expect(schema.parse(null)).toBeNull();
     expect(() => schema.parse(undefined)).toThrow('Expected object');
   });
@@ -45,10 +46,8 @@ describe("ObjectShape", () => {
     }).default({ name: "Default" });
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
-    expect(schema.parse(undefined)).toEqual({ name: "Default" });
-    expect(schema.parse(null)).toEqual({
-      name: "Default",
-    });
+    expect(() => schema.parse(undefined)).toThrow('Expected object');
+    expect(() => schema.parse(null)).toThrow();
   });
 
   test("nested objects", () => {
@@ -288,7 +287,6 @@ describe("ObjectShape", () => {
     const valid2 = { user: { name: "John", age: 30 } };
     const valid3 = { user: {} };
     const valid4 = {};
-    const valor =schema.parse(valid1)
     expect(schema.parse(valid1)).toEqual(valid1 as never);
     expect(schema.parse(valid2)).toEqual(valid2 as never);
     expect(() => schema.parse(valid3)).toThrow();
@@ -307,7 +305,6 @@ describe("ObjectShape", () => {
     const valid2 = { user: { name: "John" } };
     const valid3 = { user: {} };
     const valid4 = {};
-const valor =schema.parse(valid1)
     expect(schema.parse(valid1)).toEqual(valid1);
     expect(schema.parse(valid2)).toEqual(valid2);
     expect(schema.parse(valid3)).toEqual(valid3);
@@ -322,7 +319,7 @@ const valor =schema.parse(valid1)
       .partial()
       .default({ name: "Default" });
 
-    expect(schema.parse(undefined)).toEqual({ name: "Default" });
+    expect(() => schema.parse(undefined)).toThrow('Expected object');
     expect(schema.parse({})).toEqual({ name: "Default" });
     expect(schema.parse({ age: 30 })).toEqual({ name: "Default", age: 30 });
   });
