@@ -46,6 +46,7 @@ const dtsPath = join(process.cwd(), 'Tsh.d.ts')
 const dtsCode = generateDtsBundle([{
   filePath: join(process.cwd(), 'src/Tsh.ts'),
   output: {
+    noBanner:true,
     sortNodes: true,
     exportReferencedTypes: true,
     inlineDeclareExternals: true,

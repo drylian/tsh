@@ -67,15 +67,17 @@ export type options = TshOptions;
 
 export type TshConfig<T> = {
   [K in keyof T as
-  K extends `_${infer P}`
-  ? T[K] extends (...args: any[]) => any
-  ? never
-  : P
-  : K extends string
-  ? T[K] extends (...args: any[]) => any
-  ? never
-  : K
-  : never
+    K extends `__${string}`
+      ? never
+      : K extends `_${infer P}`
+        ? T[K] extends (...args: any[]) => any
+          ? never
+          : P
+        : K extends string
+          ? T[K] extends (...args: any[]) => any
+            ? never
+            : K
+          : never
   ]: T[K]
 };
 

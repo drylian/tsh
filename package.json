@@ -2,7 +2,7 @@
   "name": "@caeljs/tsh",
   "type": "module",
   "description": "A flexible typed data validation library that allows you to define schemas with TypeScript and validate data at runtime.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "main": "cjs/Tsh.cjs",
   "module": "esm/Tsh.js",
   "types": "Tsh.d.ts",

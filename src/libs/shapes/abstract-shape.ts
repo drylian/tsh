@@ -11,8 +11,8 @@ export abstract class AbstractShape<T> {
   public _optional = false;
   public _nullable = false;
   public _commit?: string;
-  public _op_first: TshOperation<any> | null = null;
-  public _op_last: TshOperation<any> | null = null;
+  public __op_first: TshOperation<any> | null = null;
+  public __op_last: TshOperation<any> | null = null;
 
   abstract parse(value: unknown): T;
 
@@ -92,12 +92,12 @@ export abstract class AbstractShape<T> {
   protected _addOperation(op: TshOperation<any>): this {
     const clone = this._clone();
 
-    if (!clone._op_first) {
-      clone._op_first = op;
-      clone._op_last = op;
+    if (!clone.__op_first) {
+      clone.__op_first = op;
+      clone.__op_last = op;
     } else {
-      clone._op_last!.next = op;
-      clone._op_last = op;
+      clone.__op_last!.next = op;
+      clone.__op_last = op;
     }
 
     return clone;
@@ -105,7 +105,7 @@ export abstract class AbstractShape<T> {
 
   protected _operate(value: any): any {
     let crt_value = value;
-    let crt_op:TshOperation<any, any> | null | undefined = this._op_first;
+    let crt_op:TshOperation<any, any> | null | undefined = this.__op_first;
 
     while (crt_op) {
       try {
