@@ -279,7 +279,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
             (val) => key in val,
             opts.message ?? `Object must have property "${String(key)}"`,
             opts.code ?? 'MISSING_PROPERTY',
-            { ...opts?.extra ?? {}, property: key },
+            { ...opts?.extra ?? {} },
         );
     }
 
@@ -288,7 +288,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
             (val) => !(key in val),
             opts.message ?? `Object must not have property "${String(key)}"`,
             opts.code ?? 'FORBIDDEN_PROPERTY',
-            { ...opts?.extra ?? {}, property: key },
+            { ...opts?.extra ?? {} },
         );
     }
 
@@ -322,7 +322,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
             (val) => key in val && validator(val[key]),
             opts.message ?? `Property "${String(key)}" is invalid`,
             opts.code ?? 'INVALID_PROPERTY_VALUE',
-            { ...opts?.extra ?? {}, property: key },
+            { ...opts?.extra ?? {} },
         );
     }
 

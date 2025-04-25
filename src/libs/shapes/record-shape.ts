@@ -83,7 +83,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
             message: opts?.message ?? `Invalid property "${key}"`,
             value,
             shape: this,
-            extra: { ...opts?.extra ?? {}, property: key },
+            extra: { ...opts?.extra ?? {},   },
           }), input[key]);
         }
       }
@@ -123,7 +123,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
       (val) => key in val,
       opts.message ?? `Record must have property "${String(key)}"`,
       opts.code ?? 'MISSING_PROPERTY',
-      { ...opts?.extra ?? {}, property:key },
+      { ...opts?.extra ?? {},   },
     );
   }
 
@@ -132,7 +132,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
       (val) => !(key in val),
       opts.message ?? `Record must not have property "${String(key)}"`,
       opts.code ?? 'FORBIDDEN_PROPERTY',
-      { ...opts?.extra ?? {}, property:key },
+      { ...opts?.extra ?? {},   },
     );
   }
 
@@ -141,7 +141,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
       (val) => key in val && validator(val[key]),
       opts.message ?? `Property "${String(key)}" is invalid`,
       opts.code ?? 'INVALID_PROPERTY_VALUE',
-      { ...opts?.extra ?? {}, property:key },
+      { ...opts?.extra ?? {},   },
     );
   }
 
@@ -150,7 +150,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
       (val) => key in val && shape.parse(val[key]) === val[key],
       opts.message ?? `Property "${String(key)}" has invalid shape`,
       opts.code ?? 'INVALID_PROPERTY_SHAPE',
-      { ...opts?.extra ?? {}, property:key },
+      { ...opts?.extra ?? {},   },
     );
   }
 
