@@ -88,7 +88,7 @@ describe("ObjectShape", () => {
     const valid3 = { age: 30 };
     const valid4 = {};
 
-    expect(schema.parse(valid1)).toEqual(valid1 as never);
+    expect(schema.parse(valid1)).toEqual(valid1);
     expect(schema.parse(valid2)).toEqual(valid2 as never);
     expect(schema.parse(valid3)).toEqual(valid3 as never);
     expect(schema.parse(valid4)).toEqual(valid4 as never);

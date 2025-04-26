@@ -5,7 +5,6 @@ export * from "./types";
 export * from "./shapes/abstract-shape";
 export * from "./shapes/any-shape";
 export * from "./shapes/array-shape";
-export * from "./shapes/base-shape";
 export * from "./shapes/boolean-shape";
 export * from "./shapes/enum-shape";
 export * from "./shapes/number-shape";

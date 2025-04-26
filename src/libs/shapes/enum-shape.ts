@@ -1,7 +1,7 @@
 import type { TshOptions } from '../types';
-import { BaseShape } from './base-shape';
+import { AbstractShape } from './abstract-shape';
 
-export class EnumShape<T extends (string | number | boolean)> extends BaseShape<T> {
+export class EnumShape<T extends (string | number | boolean)> extends AbstractShape<T> {
   public readonly _type = "enum";
   private readonly _values: readonly T[];
 

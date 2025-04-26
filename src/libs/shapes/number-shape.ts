@@ -1,7 +1,7 @@
 import type { TshOptions } from "../types";
-import { BaseShape } from "./base-shape";
+import { AbstractShape } from "./abstract-shape";
 
-export class NumberShape extends BaseShape<number> {
+export class NumberShape<Type extends number = number> extends AbstractShape<Type> {
   public readonly _type = "number";
 
   public _min?: number;
@@ -21,7 +21,7 @@ export class NumberShape extends BaseShape<number> {
     return this;
   }
 
-  parse(value: unknown, opts?: TshOptions): number {
+  parse(value: unknown, opts?: TshOptions): Type {
     if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
     if (typeof value === "undefined" && this._optional) return undefined as never;
     if (value === null && this._nullable) return null as never;

@@ -1,8 +1,8 @@
 import type { TshOptions, InferShapeType } from "../types";
 import { TshShapeError } from "../error";
-import { BaseShape } from "./base-shape";
+import { AbstractShape } from "./abstract-shape";
 
-export class ArrayShape<T extends BaseShape<any>> extends BaseShape<Array<InferShapeType<T>>> {
+export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<InferShapeType<T>[]> {
   public readonly _type = "array";
   public _minLength?: number;
   public _maxLength?: number;
@@ -30,7 +30,7 @@ export class ArrayShape<T extends BaseShape<any>> extends BaseShape<Array<InferS
 
     const result = value.map((item, index) => {
       try {
-        if (this._shape instanceof BaseShape) {
+        if (this._shape instanceof AbstractShape) {
           const key = this._key;
           const result = this._shape.parseWithPath(item, `${this._key}[${index}]`);
           this._key = key;
@@ -141,7 +141,7 @@ export class ArrayShape<T extends BaseShape<any>> extends BaseShape<Array<InferS
     );
   }
 
-  onion<U extends BaseShape<any>>(shape: U): ArrayShape<U> {
+  onion<U extends AbstractShape<any>>(shape: U): ArrayShape<U> {
     return new ArrayShape(shape);
   }
 }

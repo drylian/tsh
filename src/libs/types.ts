@@ -2,7 +2,6 @@ import type { TshShapeErrorConstructor } from "./error";
 import type { AbstractShape } from "./shapes/abstract-shape";
 import type { AnyShape } from "./shapes/any-shape";
 import type { ArrayShape } from "./shapes/array-shape";
-import type { BaseShape } from "./shapes/base-shape";
 import type { BooleanShape } from "./shapes/boolean-shape";
 import type { EnumShape } from "./shapes/enum-shape";
 import type { NumberShape } from "./shapes/number-shape";
@@ -21,44 +20,51 @@ export type TshOperation<T, U = T> = {
   next?: TshOperation<any>;
 };
 
+export type OptionalKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? K : never
+}[keyof T];
+
+export type RequiredKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : K
+}[keyof T];
+
+
 export type TshViewer<T> =
   T extends null | undefined ? T :
   T extends Array<infer E> ? Array<TshViewer<E>> :
-  T extends object ? { [K in keyof T]: TshViewer<T[K]> } : T;
+  T extends object ?
+  {
+    [K in RequiredKeys<T>]-?: TshViewer<T[K]>;
+  } & {
+    [K in OptionalKeys<T>]?: TshViewer<T[K]>;
+  }
+  : T;
 
-export type ObjShape<T extends Record<string, PrimitiveShapes>, Partial extends boolean = true> = Partial extends true ? {
-  [K in keyof T]?: InferShapeType<T[K]>;
-} : {
-  [K in keyof T]: InferShapeType<T[K]>;
-};
 
 export type PartialObjShape<T extends Record<string, PrimitiveShapes>> = {
-  [K in keyof T]: T[K] extends PrimitiveShapes ? T[K] : never
+  [K in keyof T]?: T[K];
 };
 
-export type DeepPartialObjShape<T extends Record<string, PrimitiveShapes>> = {
-  [K in keyof T]: T[K] extends Record<string, PrimitiveShapes>
-    ? DeepPartialInner<T[K]>
-    : T[K]
-};
-
-type DeepPartialInner<T extends Record<string, PrimitiveShapes>> = {
-  [K in keyof T]?: T[K] extends Record<string, PrimitiveShapes>
-    ? DeepPartialInner<T[K]>
-    : T[K]
+export type DeepPartialObjShape<T> = {
+  [K in keyof T]?: T[K] extends ObjectShape<infer U>
+  ? InferShapeType<DeepPartialObjShape<U>>
+  : T[K] extends PrimitiveShapes
+  ? InferShapeType<T[K]>
+  : T[K] extends object
+  ? DeepPartialObjShape<T[K]>
+  : T[K];
 };
 
 export type PrimitiveShapes =
-  | StringShape
-  | NumberShape
-  | BooleanShape
+  | StringShape<any>
+  | NumberShape<any>
+  | BooleanShape<any>
   | AnyShape<any>
   | EnumShape<any>
   | ArrayShape<any>
   | ObjectShape<any>
   | RecordShape<any, any>
   | UnionShape<any>
-  | BaseShape<any>
   | AbstractShape<any>;
 export type primitives = PrimitiveShapes;
 
@@ -67,17 +73,17 @@ export type options = TshOptions;
 
 export type TshConfig<T> = {
   [K in keyof T as
-    K extends `__${string}`
-      ? never
-      : K extends `_${infer P}`
-        ? T[K] extends (...args: any[]) => any
-          ? never
-          : P
-        : K extends string
-          ? T[K] extends (...args: any[]) => any
-            ? never
-            : K
-          : never
+  K extends `__${string}`
+  ? never
+  : K extends `_${infer P}`
+  ? T[K] extends (...args: any[]) => any
+  ? never
+  : P
+  : K extends string
+  ? T[K] extends (...args: any[]) => any
+  ? never
+  : K
+  : never
   ]: T[K]
 };
 
@@ -87,7 +93,6 @@ export type InferShapeType<T> =
   T extends BooleanShape ? boolean :
   T extends AnyShape ? any :
   T extends EnumShape<infer U> ? U :
-  T extends BaseShape<infer U> ? U :
   T extends AbstractShape<infer U> ? U :
   T extends ArrayShape<infer U> ? Array<InferShapeType<U>> :
   T extends ObjectShape<infer U> ? { [K in keyof U]: InferShapeType<U[K]> } :
@@ -96,6 +101,7 @@ export type InferShapeType<T> =
   T extends UnionShape<infer U> ? InferUnionType<U> :
   T extends readonly (infer U)[] ? ReadonlyArray<InferShapeType<U>> :
   T extends (infer U)[] ? Array<InferShapeType<U>> :
+  T extends object ? { [K in keyof T]: InferShapeType<T[K]> } :
   T;
 
 export type inferType<T> = TshViewer<InferShapeType<T>>;

@@ -1,7 +1,7 @@
 import type { TshOptions } from "../types";
-import { BaseShape } from "./base-shape";
+import { AbstractShape } from "./abstract-shape";
 
-export class BooleanShape extends BaseShape<boolean> {
+export class BooleanShape<Type extends boolean = boolean> extends AbstractShape<Type> {
   public readonly _type = "boolean";
   private _coerce = false;
 
@@ -10,7 +10,7 @@ export class BooleanShape extends BaseShape<boolean> {
     return this;
   }
 
-  parse(value: unknown, opts?: TshOptions): boolean {
+  parse(value: unknown, opts?: TshOptions): Type {
     if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
     if (typeof value === "undefined" && this._optional) return undefined as never;
     if (value === null && this._nullable) return null as never;

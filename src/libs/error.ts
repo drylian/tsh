@@ -1,4 +1,4 @@
-import type { BaseShape } from "../Tsh";
+import type { AbstractShape } from "../Tsh";
 import type { PrimitiveShapes, TshConfig } from "./types";
 
 export interface TshShapeErrorConstructor {
@@ -30,7 +30,7 @@ export class TshShapeError extends Error {
     this.path = this.params.key;
   }
 
-  toJSON():Omit<TshShapeErrorConstructor, "extra" | "shape"> & TshConfig<BaseShape<any>> {
+  toJSON():Omit<TshShapeErrorConstructor, "extra" | "shape"> & TshConfig<AbstractShape<any>> {
     return {
       code: this.code,
       message: this.message,

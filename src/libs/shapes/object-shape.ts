@@ -1,9 +1,8 @@
 import { TshShapeError } from "../error";
-import type { TshOptions, TshViewer, PrimitiveShapes, ObjShape, PartialObjShape, DeepPartialObjShape } from "../types";
+import type { TshOptions, TshViewer, PrimitiveShapes, PartialObjShape, DeepPartialObjShape, InferShapeType } from "../types";
 import { AbstractShape } from "./abstract-shape";
-import { BaseShape } from "./base-shape";
 
-export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends BaseShape<ObjShape<T>> {
+export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends AbstractShape<InferShapeType<T>> {
     public readonly _type = 'object';
     public _minProperties?: number;
     public _maxProperties?: number;
@@ -36,7 +35,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
         return newShape;
     }
 
-    getDefaults(): TshViewer<ObjShape<T>> {
+    getDefaults(): TshViewer<InferShapeType<T>> {
         const result: Record<string, unknown> = this._default ?? {};
         const keys = Object.keys(this._shape) as (keyof T)[];
         let ckey: keyof T | undefined = keys[0];
@@ -44,10 +43,10 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
         while (ckey) {
             const shape = this._shape[ckey];
             if (shape instanceof ObjectShape) {
-                const resulted  = shape.getDefaults(); 
-                if(Object.keys(resulted).length > 0) result[ckey as string] = resulted;
-            } else if (shape instanceof BaseShape) {
-                if(typeof shape._default !== "undefined")result[ckey as string] = shape._default;
+                const resulted = shape.getDefaults();
+                if (Object.keys(resulted).length > 0) result[ckey as string] = resulted;
+            } else if (shape instanceof AbstractShape) {
+                if (typeof shape._default !== "undefined") result[ckey as string] = shape._default;
             } else {
                 result[ckey as string] = shape;
             }
@@ -56,52 +55,52 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
         }
 
 
-        return result as TshViewer<ObjShape<T>>;
+        return result as TshViewer<InferShapeType<T>>;
     }
 
     //@ts-expect-error more declarations
     parse(
         value: unknown,
         rootpath: string = "",
-    ): TshViewer<ObjShape<T>> {
+    ): TshViewer<InferShapeType<T>> {
         const defaults = this.getDefaults();
         const input = value as Record<string, unknown>;
         const hasOwn = Object.prototype.hasOwnProperty;
         const isPartial = this._partial;
         const isOptional = this._optional;
         const isNullable = this._nullable;
-    
+
         if (typeof value === "undefined") {
             if (isOptional) return undefined as never;
         }
-    
+
         if (value === null) {
             if (isNullable) return null as never;
         }
-    
+
         this._key = rootpath;
         if (typeof input !== 'object' || input === null || Array.isArray(value)) {
             throw new TshShapeError({
                 code: 'NOT_OBJECT',
                 message: 'Expected object',
                 value: input,
-                shape: this,
+                shape: this as any,
             });
         }
-    
+
         const result: Record<string, unknown> = defaults as Record<string, unknown>;
         const errors: TshShapeError[] = [];
         const keys = Object.keys(this._shape);
-    
+
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
             const shape = this._shape[key];
             shape._key = this._key ? `${this._key}.${key}` : key;
-    
+
             if (isPartial && !(key in input)) continue;
-    
+
             const value = hasOwn.call(input, key) ? input[key] : defaults[key as keyof typeof defaults];
-    
+
             if (typeof value === "undefined") {
                 if (shape._optional) continue;
                 errors.push(new TshShapeError({
@@ -112,7 +111,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
                 }));
                 continue;
             }
-    
+
             if (value === null) {
                 if (shape._nullable) {
                     result[key] = null;
@@ -126,9 +125,9 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
                 }));
                 continue;
             }
-    
+
             try {
-                const sresult = shape instanceof BaseShape
+                const sresult = shape instanceof AbstractShape
                     //@ts-expect-error more declarations
                     ? shape.parse(value, shape._key)
                     : value === shape ? value : (() => {
@@ -155,11 +154,11 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
                 }
             }
         }
-    
+
         if (Object.keys(result).length === 0 && this._default !== undefined) {
-            return { ...defaults, ...this._default };
+            return { ...defaults, ...this._default } as never;
         }
-    
+
         const resultKeys = Object.keys(result);
         const minProps = this._minProperties;
         if (minProps !== undefined && resultKeys.length < minProps) {
@@ -167,66 +166,66 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
                 code: 'TOO_FEW_PROPERTIES',
                 message: `Object must have at least ${minProps} properties`,
                 value,
-                shape: this,
+                shape: this as never,
             });
         }
-    
+
         const maxProps = this._maxProperties;
         if (maxProps !== undefined && resultKeys.length > maxProps) {
             throw new TshShapeError({
                 code: 'TOO_MANY_PROPERTIES',
                 message: `Object must have at most ${maxProps} properties`,
                 value,
-                shape: this,
+                shape: this as never,
             });
         }
-    
+
         if (errors.length > 0) {
             throw errors.length === 1 ? errors[0] : new AggregateError(errors, 'Multiple validation errors');
         }
-    
-        return this._operate(result) as TshViewer<ObjShape<T>>;
+
+        return this._operate(result) as never;
     }
 
+    //@ts-expect-error recursive ignore
     partial(): ObjectShape<PartialObjShape<T>> {
         this._partial = true;
         const extended = Object.keys(this._shape).reduce((acc, key) => {
-          const shape = this._shape[key];
-          return {
-            ...acc,
-            [key]: shape instanceof BaseShape ? shape.optional() : shape,
-          };
+            const shape = this._shape[key];
+            return {
+                ...acc,
+                [key]: shape instanceof AbstractShape ? shape.optional() : shape,
+            };
         }, {} as PartialObjShape<T>);
-    
-        return this.copyMetadata(new ObjectShape(extended));
-      }
-    
-      //@ts-expect-error ignore generic typed
-      deepPartial(): ObjectShape<DeepPartialObjShape<T>> {
+
+        return this.copyMetadata(new ObjectShape(extended as never)) as never;
+    }
+
+    //@ts-expect-error recursive
+    deepPartial(): ObjectShape<DeepPartialObjShape<T>> {
         this._partial = true;
         const extended = Object.keys(this._shape).reduce((acc, key) => {
-          const shape = this._shape[key];
-          let value;
-    
-          if (shape instanceof ObjectShape) {
-            value = shape.partial();
-          } else if (shape instanceof BaseShape) {
-            value = shape.optional();
-          } else {
-            value = shape;
-          }
-    
-          return { ...acc, [key]: value };
+            const shape = this._shape[key];
+            let value;
+
+            if (shape instanceof ObjectShape) {
+                value = shape.partial();
+            } else if (shape instanceof AbstractShape) {
+                value = shape.optional();
+            } else {
+                value = shape;
+            }
+
+            return { ...acc, [key]: value };
         }, {} as DeepPartialObjShape<T>);
-    
-        //@ts-expect-error ignore diff types
-        return this.copyMetadata(new ObjectShape(extended));
-      }
+
+        return this.copyMetadata(new ObjectShape(extended as never)) as never;
+    }
     merge<U extends Record<string, PrimitiveShapes>>(shape: ObjectShape<U>): ObjectShape<T & U> {
         const newShape = {} as Record<string, PrimitiveShapes>;
 
         const this_keys = Object.keys(this._shape) as (keyof T)[];
-        let ckey: keyof T | undefined = this_keys[0] as  string;
+        let ckey: keyof T | undefined = this_keys[0] as string;
         while (ckey) {
             newShape[ckey as string] = this._shape[ckey];
             ckey = this_keys[this_keys.indexOf(ckey) + 1];
@@ -319,7 +318,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Base
         opts: TshOptions = {}
     ): this {
         return this.refine(
-            (val) => key in val && validator(val[key]),
+            (val) => key in val && validator(val[key as never] as never),
             opts.message ?? `Property "${String(key)}" is invalid`,
             opts.code ?? 'INVALID_PROPERTY_VALUE',
             { ...opts?.extra ?? {} },

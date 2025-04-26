@@ -1,7 +1,7 @@
-import { BaseShape } from './base-shape';
 import type { TshOptions } from '../types';
+import { AbstractShape } from './abstract-shape';
 
-export class StringShape extends BaseShape<string> {
+export class StringShape<Type extends string = string> extends AbstractShape<Type> {
   public readonly _type = "string";
   public _min?: number;
   public _max?: number;
@@ -22,7 +22,7 @@ export class StringShape extends BaseShape<string> {
 
   private _coerce = false;
 
-  parse(value: unknown): string {
+  parse(value: unknown): Type {
     if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
     if (typeof value === "undefined" && this._optional) return undefined as never;
     if (value === null && this._nullable) return null as never;

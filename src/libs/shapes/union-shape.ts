@@ -1,8 +1,8 @@
-import { BaseShape } from './base-shape';
 import type { TshOptions, InferUnionType, PrimitiveShapes } from '../types';
 import { TshShapeError } from '../error';
+import { AbstractShape } from './abstract-shape';
 
-export class UnionShape<T extends PrimitiveShapes[]> extends BaseShape<InferUnionType<T>> {
+export class UnionShape<T extends PrimitiveShapes[]> extends AbstractShape<InferUnionType<T>> {
   public readonly _type = "union";
 
   constructor(private readonly shapes: T) {
@@ -14,7 +14,6 @@ export class UnionShape<T extends PrimitiveShapes[]> extends BaseShape<InferUnio
 
     for (const shape of this.shapes) {
       try {
-        //@ts-expect-error abstract parse
         return shape['parseWithPath' in shape ? "parseWithPath" : "parse"](value, this._key);
       } catch (error) {
         if (error instanceof TshShapeError) {

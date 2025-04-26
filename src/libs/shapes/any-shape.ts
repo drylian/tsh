@@ -1,6 +1,7 @@
-import { BaseShape } from "./base-shape";
+import { AbstractShape } from "./abstract-shape";
 
-export class AnyShape<AnyType extends any = any> extends BaseShape<AnyType> {
+
+export class AnyShape<AnyType extends any = any> extends AbstractShape<AnyType> {
     public readonly _type = "any";
     parse(value: unknown): any {
         if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;

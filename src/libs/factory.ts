@@ -7,7 +7,7 @@ import { RecordShape } from './shapes/record-shape';
 import { EnumShape } from './shapes/enum-shape';
 import { AnyShape } from './shapes/any-shape';
 import { UnionShape } from './shapes/union-shape';
-import type { BaseShape } from './shapes/base-shape';
+import type { AbstractShape } from './shapes/abstract-shape';
 import type { InferShapeType, PrimitiveShapes } from "./types";
 
 /**
@@ -74,20 +74,20 @@ export function object<T extends Record<string, any>>(shape: T) { return new Obj
  * @param {T} shape - Shape of array elements
  * @returns {ArrayShape} A new Array shape instance
  */
-export function array<T extends BaseShape<any>>(shape: T) { return new ArrayShape(shape); }
+export function array<T extends AbstractShape<any>>(shape: T) { return new ArrayShape(shape); }
 
 /**
  * Creates a record shape validator (dictionary/map)
  * @template K - The type of record keys
  * @template V - The type of record values
- * @param {BaseShape<K>} keyShape - Shape of the keys
+ * @param {AbstractShape<K>} keyShape - Shape of the keys
  * @param {V} valueShape - Shape of the values
  * @returns {RecordShape} A new Record shape instance
  */
-export function record<K extends string | number, V >(
-  keyShape: BaseShape<K>,
-  valueShape: BaseShape<V>
-) { return new RecordShape(keyShape, valueShape as BaseShape<V>); }
+export function record<K extends AbstractShape<any>, V extends AbstractShape<any>>(
+  keyShape: K,
+  valueShape: V
+) { return new RecordShape(keyShape, valueShape); }
 
 export { Enum as enum };
 
@@ -129,11 +129,11 @@ export function nullable<T extends PrimitiveShapes>(shape: T) { return shape.nul
  * @param {T} shape - Shape to make required
  * @returns {T} The modified shape
  */
-export function required<T extends PrimitiveShapes>(shape: T) { 
+export function required<T extends PrimitiveShapes>(shape: T) {
   return shape.refine(
-    v => v !== undefined && v !== null, 
+    v => v !== undefined && v !== null,
     'Value is required'
-  ); 
+  );
 }
 
 /**
@@ -167,9 +167,9 @@ export function validate<T extends PrimitiveShapes>(value: unknown, shape: T) {
   try {
     return { success: true, data: shape.parse(value) } as const;
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error : new Error(String(error)) 
+    return {
+      success: false,
+      error: error instanceof Error ? error : new Error(String(error))
     } as const;
   }
 }
@@ -244,7 +244,7 @@ export function extend<T extends ObjectShape<any>, U extends Record<string, Prim
  * @param {T} shape - Element shape
  * @returns {ArrayShape} A new array shape with non-empty constraint
  */
-export function nonEmptyArray<T extends BaseShape<any>>(shape: T) { 
+export function nonEmptyArray<T extends AbstractShape<any>>(shape: T) {
   return array(shape).nonEmpty();
 }
 
@@ -254,7 +254,7 @@ export function nonEmptyArray<T extends BaseShape<any>>(shape: T) {
  * @param {T} shape - Element shape
  * @returns {ArrayShape} A new array shape with unique elements constraint
  */
-export function uniqueArray<T extends BaseShape<any>>(shape: T) { 
+export function uniqueArray<T extends AbstractShape<any>>(shape: T) {
   return array(shape).unique();
 }
 
@@ -265,7 +265,7 @@ export function uniqueArray<T extends BaseShape<any>>(shape: T) {
  * @param {number} min - Minimum array length
  * @returns {ArrayShape} A new array shape with length constraint
  */
-export function minLength<T extends BaseShape<any>>(shape: T, min: number) { 
+export function minLength<T extends AbstractShape<any>>(shape: T, min: number) {
   return array(shape).min(min);
 }
 
@@ -276,7 +276,7 @@ export function minLength<T extends BaseShape<any>>(shape: T, min: number) {
  * @param {number} max - Maximum array length
  * @returns {ArrayShape} A new array shape with length constraint
  */
-export function maxLength<T extends BaseShape<any>>(shape: T, max: number) { 
+export function maxLength<T extends AbstractShape<any>>(shape: T, max: number) {
   return array(shape).max(max);
 }
 
@@ -385,7 +385,7 @@ export function percentage() { return new NumberShape().percentage(); }
  * @param {U} shape2 - Second shape
  * @returns {AnyShape} A new shape that requires both conditions
  */
-export function and<T extends PrimitiveShapes, U extends PrimitiveShapes>(shape1: T, shape2: U) { 
+export function and<T extends PrimitiveShapes, U extends PrimitiveShapes>(shape1: T, shape2: U) {
   return new AnyShape<InferShapeType<T> & InferShapeType<U>>().refine(
     v => shape1.safeParse(v).success && shape2.safeParse(v).success,
     'Must satisfy both schemas'
@@ -400,7 +400,7 @@ export function and<T extends PrimitiveShapes, U extends PrimitiveShapes>(shape1
  * @param {U} shape2 - Second shape
  * @returns {UnionShape} A new shape that requires either condition
  */
-export function or<T extends PrimitiveShapes, U extends PrimitiveShapes>(shape1: T, shape2: U) { 
+export function or<T extends PrimitiveShapes, U extends PrimitiveShapes>(shape1: T, shape2: U) {
   return union([shape1, shape2]);
 }
 
@@ -410,7 +410,7 @@ export function or<T extends PrimitiveShapes, U extends PrimitiveShapes>(shape1:
  * @param {T} shape - Shape to negate
  * @returns {AnyShape} A new shape that requires the value to not match
  */
-export function not<T extends PrimitiveShapes>(shape: T) { 
+export function not<T extends PrimitiveShapes>(shape: T) {
   return new AnyShape<unknown>().refine(
     v => !shape.safeParse(v).success,
     'Must not match the schema'
@@ -426,14 +426,14 @@ export function not<T extends PrimitiveShapes>(shape: T) {
 export function random(length: number = 64, ext: boolean = false): string {
   let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   if (ext) chars += "!@#$%^&*()_+-={}[]|:;<>,.?/~`";
-  
+
   let result = "";
   const charsLength = chars.length;
-  
+
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * charsLength));
   }
-  
+
   return result;
 }
 
@@ -468,7 +468,7 @@ export function randomUuid(): string {
  * @param {string} [message] - Optional error message
  * @returns {AnyShape} A new shape with custom validation
  */
-export function custom<T>(validator: (value: unknown) => value is T, message?: string) { 
+export function custom<T>(validator: (value: unknown) => value is T, message?: string) {
   return new AnyShape<T>().refine(validator, message ?? 'Custom validation failed');
 }
 

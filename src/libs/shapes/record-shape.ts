@@ -1,13 +1,13 @@
-import { BaseShape } from './base-shape';
 import { type TshOptions, type InferShapeType, type TshViewer } from '../types';
 import { TshShapeError } from '../error';
+import { AbstractShape } from './abstract-shape';
 
-export class RecordShape<K extends string | number | symbol, V extends BaseShape<any>>
-  extends BaseShape<Record<K, InferShapeType<V>>> {
+export class RecordShape<K extends string | number | symbol, V extends AbstractShape<any>>
+  extends AbstractShape<Record<K, InferShapeType<V>>> {
     public readonly _type = "record";
 
     constructor(
-      private readonly _keyShape: BaseShape<K>,
+      private readonly _keyShape: AbstractShape<K>,
       private readonly _valueShape: V
     ) {
       super();
@@ -22,7 +22,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
       const key: K = this._keyShape._default as K;
       let value: InferShapeType<V>;
   
-      if (this._valueShape instanceof BaseShape) {
+      if (this._valueShape instanceof AbstractShape) {
         value = typeof this._valueShape._default !== 'undefined'
           ? this._valueShape._default
           : 'getDefaults' in this._valueShape
@@ -53,7 +53,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
           code: opts?.code ?? 'NOT_OBJECT',
           message: opts?.message ?? 'Expected an object',
           value,
-          shape: this,
+          shape: this as never,
           extra: { ...opts?.extra ?? {} },
         }), value);
       }
@@ -82,7 +82,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
             code: opts?.code ?? 'INVALID_PROPERTY',
             message: opts?.message ?? `Invalid property "${key}"`,
             value,
-            shape: this,
+            shape: this as never,
             extra: { ...opts?.extra ?? {},   },
           }), input[key]);
         }
@@ -145,7 +145,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
     );
   }
 
-  propertyShape(key: K, shape: BaseShape<any>, opts: TshOptions = {}): this {
+  propertyShape(key: K, shape: AbstractShape<any>, opts: TshOptions = {}): this {
     return this.refine(
       (val) => key in val && shape.parse(val[key]) === val[key],
       opts.message ?? `Property "${String(key)}" has invalid shape`,
@@ -176,7 +176,7 @@ export class RecordShape<K extends string | number | symbol, V extends BaseShape
     );
   }
 
-  exactPropertiesShape(shape: Record<K, BaseShape<any>>, opts: TshOptions = {}): this {
+  exactPropertiesShape(shape: Record<K, AbstractShape<any>>, opts: TshOptions = {}): this {
     return this.refine(
       (val) => {
         const valKeys = Object.keys(val);
