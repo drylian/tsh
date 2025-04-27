@@ -37,7 +37,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
     }
   
     //@ts-expect-error more declarations
-    parse(value: unknown, opts?: TshOptions): TshViewer<Record<K, InferShapeType<V>>> {
+    parse(value: unknown, opts?: TshOptions): InferShapeType<Record<K, InferShapeType<V>>> {
       // Early returns for default/optional/nullable cases
       if (typeof value === "undefined") {
         if (typeof this._default !== "undefined") return this._default as never;

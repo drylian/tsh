@@ -35,8 +35,8 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
         return newShape;
     }
 
-    getDefaults(): TshViewer<InferShapeType<T>> {
-        const result: Record<string, unknown> = this._default ?? {};
+    getDefaults(): InferShapeType<T> {
+        const result: Record<string, unknown> = this._default as any ?? {};
         const keys = Object.keys(this._shape) as (keyof T)[];
         let ckey: keyof T | undefined = keys[0];
 
@@ -55,14 +55,13 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
         }
 
 
-        return result as TshViewer<InferShapeType<T>>;
+        return result as InferShapeType<T>;
     }
 
-    //@ts-expect-error more declarations
     parse(
         value: unknown,
         rootpath: string = "",
-    ): TshViewer<InferShapeType<T>> {
+    ): InferShapeType<T> {
         const defaults = this.getDefaults();
         const input = value as Record<string, unknown>;
         const hasOwn = Object.prototype.hasOwnProperty;

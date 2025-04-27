@@ -28,17 +28,11 @@ export type RequiredKeys<T> = {
   [K in keyof T]-?: {} extends Pick<T, K> ? never : K
 }[keyof T];
 
-
 export type TshViewer<T> =
   T extends null | undefined ? T :
   T extends Array<infer E> ? Array<TshViewer<E>> :
-  T extends object ?
-  {
-    [K in RequiredKeys<T>]-?: TshViewer<T[K]>;
-  } & {
-    [K in OptionalKeys<T>]?: TshViewer<T[K]>;
-  }
-  : T;
+  T extends object ? { [K in keyof T]: TshViewer<T[K]> }
+: T;
 
 
 export type PartialObjShape<T extends Record<string, PrimitiveShapes>> = {
@@ -87,8 +81,7 @@ export type TshConfig<T> = {
   ]: T[K]
 };
 
-export type InferShapeType<T> =
-  T extends StringShape ? string :
+export type InferShapeType<T> = TshViewer<T extends StringShape ? string :
   T extends NumberShape ? number :
   T extends BooleanShape ? boolean :
   T extends AnyShape ? any :
@@ -102,7 +95,7 @@ export type InferShapeType<T> =
   T extends readonly (infer U)[] ? ReadonlyArray<InferShapeType<U>> :
   T extends (infer U)[] ? Array<InferShapeType<U>> :
   T extends object ? { [K in keyof T]: InferShapeType<T[K]> } :
-  T;
+  T>;
 
 export type inferType<T> = TshViewer<InferShapeType<T>>;
 export type infer<T> = TshViewer<InferShapeType<T>>;
