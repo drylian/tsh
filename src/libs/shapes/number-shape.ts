@@ -1,3 +1,4 @@
+import { TshShapeError } from "../error";
 import type { TshOptions } from "../types";
 import { AbstractShape } from "./abstract-shape";
 
@@ -21,53 +22,42 @@ export class NumberShape<Type extends number = number> extends AbstractShape<Typ
     return this;
   }
 
-  parse(value: unknown, opts?: TshOptions): Type {
-    if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
-    if (typeof value === "undefined" && this._optional) return undefined as never;
-    if (value === null && this._nullable) return null as never;
+  constructor() {
+    super({
+      sync: (value) => {
+        if (typeof value === "number") {
+          return { success: true };
+        }
 
-    if (this._coerce) {
-      if (value === null || value === undefined || value === '') {
-        value = 0;
-      } else if (typeof value === 'boolean') {
-        value = value ? 1 : 0;
-      } else if (typeof value === 'string') {
-        value = Number(value);
-        if (isNaN(value as number)) {
-          this.createError((value: unknown) => ({
-            code: opts?.code ?? 'NOT_NUMBER',
-            message: opts?.message ?? 'Expected a number',
+        return {
+          success: false,
+          error: new TshShapeError({
+            code: 'NOT_NUMBER',
+            message: 'Expected a number',
             value,
             shape: this,
-            extra: { ...opts?.extra ?? {} },
-          }), value);
+          })
+        };
+      },
+      coerceFn:(value: unknown) => {
+        if(!this._coerce) return value;
+        if (value === null || value === undefined || value === '') {
+          return 0;
         }
-      } else if (typeof value === 'number') {
-        value = value;
-      } else {
-        this.createError((value: unknown) => ({
-          code: opts?.code ?? 'NOT_NUMBER',
-          message: opts?.message ?? 'Expected a number',
-          value,
-          shape: this,
-          extra: { ...opts?.extra ?? {} },
-        }), value);
+        if (typeof value === 'boolean') {
+          return value ? 1 : 0;
+        }
+        if (typeof value === 'string') {
+          const num = Number(value);
+          return isNaN(num) ? 0 : num;
+        }
+        if (typeof value === 'object') {
+          return Number(JSON.stringify(value));
+        }
+        return Number(value);
       }
-    }
+    });
 
-    if (typeof value !== 'number') {
-      this.createError((value: unknown) => ({
-        code: opts?.code ?? 'NOT_NUMBER',
-        message: opts?.message ?? 'Expected a number',
-        value,
-        shape: this,
-        extra: { ...opts?.extra ?? {} },
-      }), value);
-    }
-
-    let result = value as number;
-
-    return this._operate(result);
   }
 
   min(value: number, opts: TshOptions = {}): this {

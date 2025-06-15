@@ -1,3 +1,4 @@
+import { TshShapeError } from '../error';
 import type { TshOptions } from '../types';
 import { AbstractShape } from './abstract-shape';
 
@@ -6,26 +7,26 @@ export class EnumShape<T extends (string | number | boolean)> extends AbstractSh
   private readonly _values: readonly T[];
 
   constructor(values: readonly T[]) {
-    super();
-    this._values = values;
-  }
+    super({
+      sync: (value) => {
+        if (values.includes(value as T)) {
+          return { success: true };
+        }
 
-  parse(value: unknown, opts?: TshOptions): Readonly<T> {
-    if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
-    if (typeof value === "undefined" && this._optional) return undefined as never;
-    if (value === null && this._nullable) return null as never;
-    if (!this._values.includes(value as T)) {
-      this.createError((value) => ({
-        value,
-        code: opts?.code ?? 'INVALID_ENUM_VALUE',
-        message: opts?.message ?? `Value must be one of: ${this._values.join(', ')}`,
-        shape:this,
-        extra: { ...opts?.extra ?? {}, validValues: this._values.join(', ') },
-      }),
-        value
-      );
-    }
-    return this._operate(value as T);
+        return {
+          success: false,
+          error: new TshShapeError({
+            code: 'INVALID_ENUM_VALUE',
+            message: `Value must be one of: ${values.join(', ')}`,
+            value,
+            shape: this,
+            extra: { validValues: values.join(', ') }
+          })
+        };
+      }
+    });
+
+    this._values = values;
   }
 
   hasValue(value: T, opts: TshOptions = {}): this {

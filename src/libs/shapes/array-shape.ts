@@ -1,5 +1,4 @@
 import type { TshOptions, InferShapeType } from "../types";
-import { TshShapeError } from "../error";
 import { AbstractShape } from "./abstract-shape";
 
 export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<InferShapeType<T>[]> {
@@ -10,68 +9,56 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
   public _nonEmpty = false;
 
   constructor(public readonly _shape: T) {
-    super();
-  }
+    super({
+      sync: (value) => {
+        const path = this._key !== "abstract" ? this._key : this._type || 'array';
 
-  parse(value: unknown, opts?: TshOptions): Array<InferShapeType<T>> {
-    if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
-    if (typeof value === "undefined" && this._optional) return undefined as never;
-    if (value === null && this._nullable) return null as never;
+        if (!Array.isArray(value)) {
+          const e = new Error(`${path} - Expected an array`);
+          return { success: false, error: e, errors: [e] };
+        }
 
-    if (!Array.isArray(value)) {
-      this.createError((value: unknown) => ({
-        code: opts?.code ?? 'NOT_ARRAY',
-        message: opts?.message ?? 'Expected an array',
-        value,
-        extra: opts?.extra,
-        shape: this,
-      }), value);
-    }
+        const errors: Error[] = [];
+        const output: unknown[] = [];
 
-    const result = value.map((item, index) => {
-      try {
-        if (this._shape instanceof AbstractShape) {
-          const key = this._key;
-          const result = this._shape.parseWithPath(item, `${this._key}[${index}]`);
-          this._key = key;
-          return result;
-        } else {
-          if (item !== this._shape) {
-            throw new TshShapeError({
-              ...opts,
-              code: 'INVALID_LITERAL',
-              message: `Expected ${this._shape}`,
-              value: item,
-              extra: {
-                key: `${this._key}[${index}]`,
-                expected: JSON.stringify(this._shape),
-                ...opts?.extra ?? {},
-              },
-              shape: this,
-            });
+        value.forEach((item, index) => {
+          const itemPath = `${path}[${index}]`;
+          const result = this._shape.withPath(itemPath, () => this._shape.safeParse(item));
+
+          if (!result.success) {
+            const msg = result.error?.message || 'Invalid array item';
+            errors.push(new Error(`${itemPath} - ${msg}`));
+          } else {
+            output.push(result.value);
           }
-          return item;
+        });
+
+        if (errors.length > 0) {
+          const agg = new AggregateError(errors, `Invalid array elements`);
+          return { success: false, error: agg, errors };
         }
-      } catch (error) {
-        if (error instanceof TshShapeError) {
-          throw error;
+
+        // Check length constraints (min, max, exact)
+        const len = value.length;
+
+        if (this._exactLength !== undefined && len !== this._exactLength) {
+          const e = new Error(`${path} - Must contain exactly ${this._exactLength} elements`);
+          return { success: false, error: e, errors: [e] };
         }
-        this.createError((value: unknown) => ({
-          ...opts,
-          code: opts?.code ?? 'INVALID_ARRAY_ELEMENT',
-          message: opts?.message ?? `Invalid array element at index ${index}`,
-          value,
-          shape: this,
-          extra: {
-            key: `${this._key}[${index}]`,
-            index,
-            ...opts?.extra ?? {},
-          },
-        }), item);
+
+        if (this._minLength !== undefined && len < this._minLength) {
+          const e = new Error(`${path} - Must contain at least ${this._minLength} elements`);
+          return { success: false, error: e, errors: [e] };
+        }
+
+        if (this._maxLength !== undefined && len > this._maxLength) {
+          const e = new Error(`${path} - Must contain at most ${this._maxLength} elements`);
+          return { success: false, error: e, errors: [e] };
+        }
+
+        return { success: true, value: output as InferShapeType<T>[] };
       }
     });
-
-    return this._operate(result);
   }
 
   min(min: number, opts: TshOptions = {}): this {
@@ -80,7 +67,7 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
       (arr) => arr.length >= min,
       opts.message ?? `Array must contain at least ${min} elements`,
       opts.code ?? 'ARRAY_TOO_SHORT',
-      { ...opts?.extra ?? {}, min }
+      { ...opts.extra, min }
     );
   }
 
@@ -90,7 +77,7 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
       (arr) => arr.length <= max,
       opts.message ?? `Array must contain at most ${max} elements`,
       opts.code ?? 'ARRAY_TOO_LONG',
-      { ...opts?.extra ?? {}, max }
+      { ...opts.extra, max }
     );
   }
 
@@ -100,7 +87,7 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
       (arr) => arr.length === length,
       opts.message ?? `Array must contain exactly ${length} elements`,
       opts.code ?? 'INVALID_ARRAY_LENGTH',
-      { ...opts?.extra ?? {}, length }
+      { ...opts.extra, length }
     );
   }
 
@@ -110,7 +97,7 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
       (arr) => arr.length > 0,
       opts.message ?? 'Array must not be empty',
       opts.code ?? 'EMPTY_ARRAY',
-      { ...opts?.extra ?? {}}
+      opts.extra
     );
   }
 
@@ -119,16 +106,16 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
       (arr) => new Set(arr).size === arr.length,
       opts.message ?? 'Array must contain unique elements',
       opts.code ?? 'DUPLICATE_ITEMS',
-      { ...opts?.extra ?? {}}
+      opts.extra
     );
   }
 
-  includes(element: InferShapeType<T>, opts: TshOptions = {}) {
+  includes(element: InferShapeType<T>, opts: TshOptions = {}): this {
     return this.refine(
-      (arr: any[]) => arr.includes(element as never),
+      (arr) => arr.includes(element),
       opts.message ?? `Array must include ${JSON.stringify(element)}`,
       opts.code ?? 'MISSING_ELEMENT',
-      { ...opts?.extra ?? {}, element }
+      { ...opts.extra, element }
     );
   }
 
@@ -137,7 +124,7 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
       (arr) => !arr.includes(element),
       opts.message ?? `Array must not include ${JSON.stringify(element)}`,
       opts.code ?? 'FORBIDDEN_ELEMENT',
-      { ...opts?.extra ?? {}, element }
+      { ...opts.extra, element }
     );
   }
 

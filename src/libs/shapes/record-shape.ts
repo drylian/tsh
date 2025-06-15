@@ -4,93 +4,124 @@ import { AbstractShape } from './abstract-shape';
 
 export class RecordShape<K extends string | number | symbol, V extends AbstractShape<any>>
   extends AbstractShape<Record<K, InferShapeType<V>>> {
-    public readonly _type = "record";
+  public readonly _type = "record";
 
-    constructor(
-      private readonly _keyShape: AbstractShape<K>,
-      private readonly _valueShape: V
-    ) {
-      super();
-    }
-  
-    getDefaults(): TshViewer<Record<K, InferShapeType<V>>> {
-      if (typeof this._default !== 'undefined') {
-        return this._default as never;
-      }
-  
-      const result: Record<any, any> = {};
-      const key: K = this._keyShape._default as K;
-      let value: InferShapeType<V>;
-  
-      if (this._valueShape instanceof AbstractShape) {
-        value = typeof this._valueShape._default !== 'undefined'
-          ? this._valueShape._default
-          : 'getDefaults' in this._valueShape
-            ? (this._valueShape as any).getDefaults()
-            : {} as InferShapeType<V>;
-      } else {
-        value = this._valueShape;
-      }
-  
-      if (key) result[key] = value;
-      return result as never;
-    }
-  
-    //@ts-expect-error more declarations
-    parse(value: unknown, opts?: TshOptions): InferShapeType<Record<K, InferShapeType<V>>> {
-      // Early returns for default/optional/nullable cases
-      if (typeof value === "undefined") {
-        if (typeof this._default !== "undefined") return this._default as never;
-        if (this._optional) return undefined as never;
-      }
-      if (value === null) {
-        if (this._nullable) return null as never;
-      }
-  
-      // Fast object check
-      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-        this.createError((value: unknown) => ({
-          code: opts?.code ?? 'NOT_OBJECT',
-          message: opts?.message ?? 'Expected an object',
-          value,
-          shape: this as never,
-          extra: { ...opts?.extra ?? {} },
-        }), value);
-      }
-  
-      const result: Record<any, any> = {};
-      const input = value as Record<any, unknown>;
-      const hasOwn = Object.prototype.hasOwnProperty;
-      const keyShape = this._keyShape;
-      const valueShape = this._valueShape;
-      const currentKey = this._key;
-  
-      // Optimized for-in loop
-      for (const key in input) {
-        if (!hasOwn.call(input, key)) continue;
-  
-        try {
-          const parsedKey = keyShape.parseWithPath(key, currentKey ? `${currentKey}[key]` : '[key]');
-          result[parsedKey] = valueShape.parseWithPath(
-            input[key],
-            currentKey ? `${currentKey}.${String(key)}` : String(key)
-          );
-        } catch (error) {
-          if (error instanceof TshShapeError) throw error;
-          
-          this.createError((value: unknown) => ({
-            code: opts?.code ?? 'INVALID_PROPERTY',
-            message: opts?.message ?? `Invalid property "${key}"`,
-            value,
-            shape: this as never,
-            extra: { ...opts?.extra ?? {},   },
-          }), input[key]);
+  constructor(
+    private readonly _keyShape: AbstractShape<K>,
+    private readonly _valueShape: V
+  ) {
+    super({
+      sync: (value) => {
+        // Early returns for default/optional/nullable cases
+        if (typeof value === "undefined") {
+          if (typeof this._default !== "undefined") return { success: true, value: this._default };
+          if (this._optional) return { success: true, value: undefined };
+          return {
+            success: false,
+            error: new TshShapeError({
+              code: 'MISSING_VALUE',
+              message: 'Value is required',
+              value,
+              shape: this
+            })
+          };
         }
+
+        if (value === null) {
+          if (this._nullable) return { success: true, value: null };
+          return {
+            success: false,
+            error: new TshShapeError({
+              code: 'NULL_VALUE',
+              message: 'Value cannot be null',
+              value,
+              shape: this
+            })
+          };
+        }
+
+        // Fast object check
+        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+          return {
+            success: false,
+            error: new TshShapeError({
+              code: 'NOT_OBJECT',
+              message: 'Expected an object',
+              value,
+              shape: this,
+              extra: {}
+            })
+          };
+        }
+
+        const result: Record<any, any> = {};
+        const input = value as Record<any, unknown>;
+        const hasOwn = Object.prototype.hasOwnProperty;
+        const currentKey = this._key;
+        const errors: TshShapeError[] = [];
+
+        // Optimized for-in loop
+        for (const key in input) {
+          if (!hasOwn.call(input, key)) continue;
+
+          const keyResult = this._keyShape.safeParse(key);
+          const valueResult = this._valueShape.safeParse(input[key]);
+
+          if (!keyResult.success && keyResult.errors) {
+            errors.push(...keyResult.errors);
+            continue;
+          }
+
+          if (!valueResult.success && valueResult.errors) {
+            errors.push(...valueResult.errors);
+            continue;
+          }
+
+          result[keyResult.value] = valueResult.value;
+        }
+
+        if (errors.length > 0) {
+          return {
+            success: false,
+            error: errors.length === 1
+              ? errors[0]
+              : new TshShapeError({
+                code: 'MULTIPLE_ERRORS',
+                message: 'Multiple validation errors',
+                value,
+                shape: this,
+                extra: { errors }
+              })
+          };
+        }
+
+        return { success: true, value: result };
       }
-  
-      return this._operate(result) as never;
+    });
+  }
+  getDefaults(): TshViewer<Record<K, InferShapeType<V>>> {
+    if (typeof this._default !== 'undefined') {
+      return this._default as never;
     }
-  
+
+    const result: Record<any, any> = {};
+    const key: K = this._keyShape._default as K;
+    let value: InferShapeType<V>;
+
+    if (this._valueShape instanceof AbstractShape) {
+      value = typeof this._valueShape._default !== 'undefined'
+        ? this._valueShape._default
+        : 'getDefaults' in this._valueShape
+          ? (this._valueShape as any).getDefaults()
+          : {} as InferShapeType<V>;
+    } else {
+      value = this._valueShape;
+    }
+
+    if (key) result[key] = value;
+    return result as never;
+  }
+
   minProperties(min: number, opts: TshOptions = {}): this {
     return this.refine(
       (val) => Object.keys(val).length >= min,
@@ -123,7 +154,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => key in val,
       opts.message ?? `Record must have property "${String(key)}"`,
       opts.code ?? 'MISSING_PROPERTY',
-      { ...opts?.extra ?? {},   },
+      { ...opts?.extra ?? {}, },
     );
   }
 
@@ -132,7 +163,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => !(key in val),
       opts.message ?? `Record must not have property "${String(key)}"`,
       opts.code ?? 'FORBIDDEN_PROPERTY',
-      { ...opts?.extra ?? {},   },
+      { ...opts?.extra ?? {}, },
     );
   }
 
@@ -141,7 +172,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => key in val && validator(val[key]),
       opts.message ?? `Property "${String(key)}" is invalid`,
       opts.code ?? 'INVALID_PROPERTY_VALUE',
-      { ...opts?.extra ?? {},   },
+      { ...opts?.extra ?? {}, },
     );
   }
 
@@ -150,7 +181,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => key in val && shape.parse(val[key]) === val[key],
       opts.message ?? `Property "${String(key)}" has invalid shape`,
       opts.code ?? 'INVALID_PROPERTY_SHAPE',
-      { ...opts?.extra ?? {},   },
+      { ...opts?.extra ?? {}, },
     );
   }
 
@@ -196,7 +227,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       },
       opts.message ?? 'Record shape does not match required structure',
       opts.code ?? 'INVALID_RECORD_SHAPE',
-      { ...opts?.extra ?? {}, requiredShape: shape  },
+      { ...opts?.extra ?? {}, requiredShape: shape },
     );
   }
 }

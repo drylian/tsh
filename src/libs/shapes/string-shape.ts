@@ -1,3 +1,4 @@
+import { TshShapeError } from '../error';
 import type { TshOptions } from '../types';
 import { AbstractShape } from './abstract-shape';
 
@@ -21,36 +22,31 @@ export class StringShape<Type extends string = string> extends AbstractShape<Typ
   public _endsWith?: string;
 
   private _coerce = false;
+  constructor() {
+    super({
+      sync: (value) => {
+        if (typeof value === "string") {
+          return { success: true };
+        }
 
-  parse(value: unknown): Type {
-    if (typeof value === "undefined" && typeof this._default !== "undefined") value = this._default;
-    if (typeof value === "undefined" && this._optional) return undefined as never;
-    if (value === null && this._nullable) return null as never;
-
-    if (this._coerce) {
-      if (value === null || value === undefined) {
-        value = '';
-      } else if (typeof value === 'boolean' || typeof value === 'number') {
-        value = String(value);
-      } else if (typeof value === 'object') {
-        value = JSON.stringify(value);
-      } else {
-        value = String(value);
+        return {
+          success: false,
+          error: new TshShapeError({
+            code: 'NOT_STRING',
+            message: 'Expected a string',
+            value,
+            shape: this,
+          })
+        };
+      },
+      coerceFn:(value) => {
+        if(!this._coerce) return value;
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'boolean' || typeof value === 'number') return String(value);
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
       }
-    }
-
-    if (typeof value !== 'string') {
-      this.createError((v) => ({
-        code: 'NOT_STRING',
-        message: 'Expected a string',
-        value: v,
-        shape: this,
-      }), value);
-    }
-
-    let result = value as string;
-
-    return this._operate(result);
+    });
   }
 
   min(length: number, opts: TshOptions = {}): this {
@@ -83,7 +79,9 @@ export class StringShape<Type extends string = string> extends AbstractShape<Typ
   }
 
   coerce(): this {
-    this._coerce = true;
+    if (!this._coerce) {
+      this._coerce = true;
+    }
     return this;
   }
 

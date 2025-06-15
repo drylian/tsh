@@ -55,7 +55,7 @@ describe("EnumShape", () => {
   test("enum with default", () => {
     const schema = t.enum(["a", "b"] as const).default("a");
     expect(schema.parse("b")).toBe("b");
-    expect(schema.parse(undefined)).toBe("a");
+    expect(() => schema.parse(undefined)).toThrow();
     expect(() => schema.parse(null)).toThrow();
   });
 

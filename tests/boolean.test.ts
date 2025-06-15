@@ -28,7 +28,7 @@ describe("BooleanShape", () => {
   test("boolean with default", () => {
     const schema = t.boolean().default(true);
     expect(schema.parse(false)).toBe(false);
-    expect(schema.parse(undefined)).toBe(true);
+    expect(() => schema.parse(undefined)).toThrow('Missing required value for boolean');
     expect(() => schema.parse(null)).toThrow();
   });
 

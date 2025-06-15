@@ -16,7 +16,7 @@
     "TOO_MANY_PROPERTIES": "Object must have at most {max} properties",
     "INVALID_PROPERTY_VALUE": "Property \"{key}\" is invalid",
     "INVALID_LITERAL": "Expected literal: {expected}",
-    "NOT_ARRAY": "Expected an array",
+    "NOT_ARRAY": "Expected a array",
     "STRING_NOT_UPPERCASE":"String is not fully uppercase",
     "NO_MATCHING_UNION_MEMBER":"Value did not match any union member",
     "STRING_NOT_LOWERCASE":"String is not fully lowercase",

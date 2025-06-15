@@ -6,43 +6,47 @@ export class UnionShape<T extends PrimitiveShapes[]> extends AbstractShape<Infer
   public readonly _type = "union";
 
   constructor(private readonly shapes: T) {
-    super();
-  }
+    super({
+      sync: (value) => {
+        const errors: TshShapeError[] = [];
 
-  parse(value: unknown, opts?: TshOptions): any {
-    const errors: TshShapeError[] = [];
+        for (const shape of this.shapes) {
+          const result = shape.safeParse(value);
+          if (result.success) {
+            return { success: true, value: result.value };
+          }
+          if (result.errors) {
+            errors.push(...result.errors);
+          }
+        }
 
-    for (const shape of this.shapes) {
-      try {
-        return shape['parseWithPath' in shape ? "parseWithPath" : "parse"](value, this._key);
-      } catch (error) {
-        if (error instanceof TshShapeError) {
-          errors.push(error);
-        } else {
-          errors.push(new TshShapeError({
-            code: 'UNKNOWN_ERROR',
-            message: String(error),
+        return {
+          success: false,
+          error: new TshShapeError({
+            code: 'NO_MATCHING_UNION_MEMBER',
+            message: 'Value did not match any union member',
             value,
             shape: this,
-            extra: { ...opts?.extra ?? {} },
-          }));
-        }
+            extra: {
+              errors: errors.map(err => ({
+                code: err.code,
+                message: err.message,
+                path: err.shape._key
+              }))
+            }
+          })
+        };
       }
-    }
+    });
+  }
 
-    this.createError((value: unknown) => ({
-      code: opts?.code ?? 'NO_MATCHING_UNION_MEMBER',
-      message: opts?.message ?? 'Value did not match any union member',
-      value,
-      shape:this,
-      extra: {
-        ...opts?.extra ?? {},
-        errors: errors.map(err => ({
-          code: err.code,
-          message: err.message,
-          path: err.shape._key
-        }))
-      }
-    }), value);
+  refine(
+    predicate: (value: InferUnionType<T>) => boolean,
+    message: string,
+    code: string = "VALIDATION_ERROR",
+    extra?: Record<string, unknown>,
+    opts?: TshOptions,
+  ): this {
+    return super.refine(predicate, message, code, extra, opts);
   }
 }

@@ -29,7 +29,7 @@ describe("RecordShape", () => {
     test("record with default", () => {
         const schema = t.record(t.string(), t.number()).default({ default: 0 });
         expect(schema.parse({ a: 1 })).toEqual({ a: 1 });
-        expect(schema.parse(undefined)).toEqual({ default: 0 });
+        expect(() => schema.parse(undefined)).toThrow('Value is required')
         expect(() => schema.parse(null)).toThrow();
     });
 

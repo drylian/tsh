@@ -9,8 +9,116 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
     public _partial = false;
     private readonly _shape: T;
 
+    default(value: InferShapeType<T>): this {
+        const clone = new ObjectShape(this._shape);
+        clone._default = value as never;
+        return clone as never;
+    }
+
     constructor(_shape: T) {
-        super();
+        super({
+            sync: (value) => {
+              const isNullable = this._nullable;
+              const isOptional = this._optional;
+              const isPartial = this._partial;
+          
+              if (value === undefined) {
+                return isOptional
+                  ? { success: true, value: this._default }
+                  : {
+                      success: false,
+                      error: new Error(`${this._key || 'root'} - Value is required`),
+                      errors: [new Error(`${this._key || 'root'} - Value is required`)],
+                    };
+              }
+          
+              if (value === null) {
+                return isNullable
+                  ? { success: true, value: null }
+                  : {
+                      success: false,
+                      error: new Error(`${this._key || 'root'} - Value cannot be null`),
+                      errors: [new Error(`${this._key || 'root'} - Value cannot be null`)],
+                    };
+              }
+          
+              if (typeof value !== 'object' || Array.isArray(value) || value === null) {
+                return {
+                  success: false,
+                  error: new Error(`${this._key || 'root'} - Expected object`),
+                  errors: [new Error(`${this._key || 'root'} - Expected object`)],
+                };
+              }
+          
+              const input = value as Record<string, unknown>;
+              const defaults = this.getDefaults();
+              const result: Record<string, unknown> = {};
+              const errors: Error[] = [];
+          
+              Object.keys(this._shape).forEach((key) => {
+                const shape = this._shape[key];
+                const path = this._key ? `${this._key}.${key}` : key;
+                shape._key = path;
+          
+                if (isPartial && !(key in input)) return;
+          
+                let val = input[key];
+          
+                if (val && typeof val === "object" && !Array.isArray(val) && defaults[key]) {
+                  val = { ...defaults[key], ...val };
+                }
+          
+                if (val === undefined) {
+                  if (shape._optional) return;
+                  errors.push(new Error(`${path} - Missing required value for`));
+                  return;
+                }
+          
+                if (val === null) {
+                  if (shape._nullable) {
+                    result[key] = null;
+                    return;
+                  }
+                  errors.push(new Error(`${path} - Cannot be null`));
+                  return;
+                }
+          
+                const parsed = shape instanceof AbstractShape
+                  ? shape.withPath(path, () => shape.safeParse(val))
+                  : { success: val === shape, value: val };
+          
+                if (!parsed.success) {
+                  errors.push(new Error(`${path} - ${parsed.error?.message ?? 'Invalid value'}`));
+                  return;
+                }
+          
+                result[key] = parsed.value;
+              });
+          
+              if (errors.length > 0) {
+                const aggregate = new AggregateError(errors, `${this._key || 'root'} - Multiple validation errors`);
+                return { success: false, error: aggregate, errors };
+              }
+          
+              const resultKeys = Object.keys(result);
+              const minProps = this._minProperties;
+              const maxProps = this._maxProperties;
+          
+              if (minProps !== undefined && resultKeys.length < minProps) {
+                const e = new Error(`${this._key || 'root'} - Object must have at least ${minProps} properties`);
+                return { success: false, error: e, errors: [e] };
+              }
+          
+              if (maxProps !== undefined && resultKeys.length > maxProps) {
+                const e = new Error(`${this._key || 'root'} - Object must have at most ${maxProps} properties`);
+                return { success: false, error: e, errors: [e] };
+              }
+          
+              return { success: true, value: result as InferShapeType<T> };
+            }
+          });
+          
+
         this._shape = _shape;
     }
 
@@ -20,10 +128,9 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
         let ckey: keyof this | undefined = keys[0];
 
         while (ckey) {
-            if (
-                !exclude.includes(ckey as string) &&
-                ckey in newShape
-            ) {
+            if (ckey == '_default') {
+                newShape.default(this._default);
+            } else if (!exclude.includes(ckey as string) && ckey in newShape) {
                 const value = this[ckey];
                 if (typeof value !== "function") {
                     (newShape as any)[ckey] = value;
@@ -36,154 +143,33 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
     }
 
     getDefaults(): InferShapeType<T> {
-        const result: Record<string, unknown> = this._default as any ?? {};
+        const result: Record<string, unknown> = {};
         const keys = Object.keys(this._shape) as (keyof T)[];
-        let ckey: keyof T | undefined = keys[0];
 
-        while (ckey) {
-            const shape = this._shape[ckey];
-            if (shape instanceof ObjectShape) {
-                const resulted = shape.getDefaults();
-                if (Object.keys(resulted).length > 0) result[ckey as string] = resulted;
-            } else if (shape instanceof AbstractShape) {
-                if (typeof shape._default !== "undefined") result[ckey as string] = shape._default;
+        for (const key of keys) {
+            const shape = this._shape[key];
+
+            if (shape instanceof AbstractShape) {
+                if (typeof shape._default !== "undefined") {
+                    result[key as string] = shape._default;
+                } else if (shape instanceof ObjectShape) {
+                    const nestedDefaults = shape.getDefaults();
+                    if (Object.keys(nestedDefaults).length > 0) {
+                        result[key as string] = nestedDefaults;
+                    }
+                }
             } else {
-                result[ckey as string] = shape;
+                // Para shapes primitivos (não AbstractShape)
+                result[key as string] = shape;
             }
-
-            ckey = keys[keys.indexOf(ckey) + 1];
         }
 
+        // Se houver um default no próprio ObjectShape, mesclar com os defaults das propriedades
+        if (this._default) {
+            return { ...result, ...this._default };
+        }
 
         return result as InferShapeType<T>;
-    }
-
-    parse(
-        value: unknown,
-        rootpath: string = "",
-    ): InferShapeType<T> {
-        const defaults = this.getDefaults();
-        const input = value as Record<string, unknown>;
-        const hasOwn = Object.prototype.hasOwnProperty;
-        const isPartial = this._partial;
-        const isOptional = this._optional;
-        const isNullable = this._nullable;
-
-        if (typeof value === "undefined") {
-            if (isOptional) return undefined as never;
-        }
-
-        if (value === null) {
-            if (isNullable) return null as never;
-        }
-
-        this._key = rootpath;
-        if (typeof input !== 'object' || input === null || Array.isArray(value)) {
-            throw new TshShapeError({
-                code: 'NOT_OBJECT',
-                message: 'Expected object',
-                value: input,
-                shape: this as any,
-            });
-        }
-
-        const result: Record<string, unknown> = defaults as Record<string, unknown>;
-        const errors: TshShapeError[] = [];
-        const keys = Object.keys(this._shape);
-
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            const shape = this._shape[key];
-            shape._key = this._key ? `${this._key}.${key}` : key;
-
-            if (isPartial && !(key in input)) continue;
-
-            const value = hasOwn.call(input, key) ? input[key] : defaults[key as keyof typeof defaults];
-
-            if (typeof value === "undefined") {
-                if (shape._optional) continue;
-                errors.push(new TshShapeError({
-                    code: "MISSING_PROPERTY",
-                    message: `Missing required property "${shape._key}"`,
-                    value: undefined,
-                    shape: shape,
-                }));
-                continue;
-            }
-
-            if (value === null) {
-                if (shape._nullable) {
-                    result[key] = null;
-                    continue;
-                }
-                errors.push(new TshShapeError({
-                    code: "NULL_VALUE",
-                    message: `Property "${shape._key}" cannot be null`,
-                    value: null,
-                    shape: shape,
-                }));
-                continue;
-            }
-
-            try {
-                const sresult = shape instanceof AbstractShape
-                    //@ts-expect-error more declarations
-                    ? shape.parse(value, shape._key)
-                    : value === shape ? value : (() => {
-                        throw new TshShapeError({
-                            code: 'INVALID_LITERAL',
-                            message: `Expected literal: ${JSON.stringify(shape)}`,
-                            value,
-                            shape: shape,
-                        });
-                    })();
-                result[key] = sresult;
-            } catch (err) {
-                if (err instanceof AggregateError) {
-                    errors.push(...err.errors);
-                } else if (err instanceof TshShapeError) {
-                    errors.push(err);
-                } else {
-                    errors.push(new TshShapeError({
-                        code: 'INVALID_PROPERTY',
-                        message: `Invalid property "${key}"`,
-                        value,
-                        shape: shape,
-                    }));
-                }
-            }
-        }
-
-        if (Object.keys(result).length === 0 && this._default !== undefined) {
-            return { ...defaults, ...this._default } as never;
-        }
-
-        const resultKeys = Object.keys(result);
-        const minProps = this._minProperties;
-        if (minProps !== undefined && resultKeys.length < minProps) {
-            throw new TshShapeError({
-                code: 'TOO_FEW_PROPERTIES',
-                message: `Object must have at least ${minProps} properties`,
-                value,
-                shape: this as never,
-            });
-        }
-
-        const maxProps = this._maxProperties;
-        if (maxProps !== undefined && resultKeys.length > maxProps) {
-            throw new TshShapeError({
-                code: 'TOO_MANY_PROPERTIES',
-                message: `Object must have at most ${maxProps} properties`,
-                value,
-                shape: this as never,
-            });
-        }
-
-        if (errors.length > 0) {
-            throw errors.length === 1 ? errors[0] : new AggregateError(errors, 'Multiple validation errors');
-        }
-
-        return this._operate(result) as never;
     }
 
     //@ts-expect-error recursive ignore
@@ -220,6 +206,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
 
         return this.copyMetadata(new ObjectShape(extended as never)) as never;
     }
+
     merge<U extends Record<string, PrimitiveShapes>>(shape: ObjectShape<U>): ObjectShape<T & U> {
         const newShape = {} as Record<string, PrimitiveShapes>;
 
@@ -240,6 +227,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
         const clone = new ObjectShape(newShape as T & U);
         return this.copyMetadata(clone);
     }
+
 
     pick<K extends keyof T>(keys: K[]): ObjectShape<Pick<T, K>> {
         const newShape = {} as Record<string, PrimitiveShapes>;
@@ -327,4 +315,9 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
     nonEmpty(): this {
         return this.minProperties(1);
     }
+
+    private _createAggregatedError(errors: TshShapeError[], value: unknown) {
+        return new AggregateError(errors, errors.map((err) => `${err.path} - ${err.message}`).join(", "));
+    }
+
 }

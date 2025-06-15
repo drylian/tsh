@@ -11,7 +11,7 @@ import type { StringShape } from "./shapes/string-shape";
 import type { UnionShape } from "./shapes/union-shape";
 
 export type TshOperation<T, U = T> = {
-  type: "transform" | "refine";
+  type: "transform" | "refine" | "transformAsync" | "refineAsync";
   fn: (value: T) => U | boolean;
   message: string;
   code?: string;
