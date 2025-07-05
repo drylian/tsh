@@ -7,7 +7,8 @@ export class UnionShape<T extends PrimitiveShapes[]> extends AbstractShape<Infer
 
   constructor(private readonly shapes: T) {
     super({
-      sync: (value) => {
+      type:"union",
+      primitiveFn: (value) => {
         const errors: TshShapeError[] = [];
 
         for (const shape of this.shapes) {

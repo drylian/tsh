@@ -316,7 +316,7 @@ describe("ObjectShape", () => {
       .partial()
       .default({ name: "Default" });
       console.log(schema._default);
-    expect(() => schema.parse(undefined)).toThrow('Expected a object');
+    expect(() => schema.parse(undefined)).toThrow('Missing required value for "object"');
     expect(schema.parse({})).toEqual({ name: "Default" });
     expect(schema.parse({ age: 30 })).toEqual({ name: "Default", age: 30 });
   });

@@ -1,9 +1,10 @@
-import { type TshOptions, type InferShapeType, type TshViewer } from '../types';
+import type { TshOptions, InferShapeType, TshViewer } from '../types';
 import { TshShapeError } from '../error';
 import { AbstractShape } from './abstract-shape';
 
 export class RecordShape<K extends string | number | symbol, V extends AbstractShape<any>>
   extends AbstractShape<Record<K, InferShapeType<V>>> {
+
   public readonly _type = "record";
 
   constructor(
@@ -11,114 +12,74 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
     private readonly _valueShape: V
   ) {
     super({
-      sync: (value) => {
-        // Early returns for default/optional/nullable cases
-        if (typeof value === "undefined") {
-          if (typeof this._default !== "undefined") return { success: true, value: this._default };
-          if (this._optional) return { success: true, value: undefined };
-          return {
-            success: false,
-            error: new TshShapeError({
-              code: 'MISSING_VALUE',
-              message: 'Value is required',
-              value,
-              shape: this
-            })
-          };
-        }
-
-        if (value === null) {
-          if (this._nullable) return { success: true, value: null };
-          return {
-            success: false,
-            error: new TshShapeError({
-              code: 'NULL_VALUE',
-              message: 'Value cannot be null',
-              value,
-              shape: this
-            })
-          };
-        }
-
-        // Fast object check
-        if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      type: "record",
+      primitiveFn: async (value) => {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
           return {
             success: false,
             error: new TshShapeError({
               code: 'NOT_OBJECT',
               message: 'Expected an object',
               value,
-              shape: this,
-              extra: {}
+              shape: this
             })
           };
         }
 
         const result: Record<any, any> = {};
         const input = value as Record<any, unknown>;
-        const hasOwn = Object.prototype.hasOwnProperty;
-        const currentKey = this._key;
         const errors: TshShapeError[] = [];
 
-        // Optimized for-in loop
-        for (const key in input) {
-          if (!hasOwn.call(input, key)) continue;
+        for (const key of Object.keys(input)) {
+          const keyResult = await this._keyShape.safeParseAsync(key);
+          const valueResult = await this._valueShape.safeParseAsync(input[key]);
 
-          const keyResult = this._keyShape.safeParse(key);
-          const valueResult = this._valueShape.safeParse(input[key]);
-
-          if (!keyResult.success && keyResult.errors) {
-            errors.push(...keyResult.errors);
-            continue;
-          }
-
-          if (!valueResult.success && valueResult.errors) {
-            errors.push(...valueResult.errors);
-            continue;
-          }
-
-          result[keyResult.value] = valueResult.value;
+          if (!keyResult.success) errors.push(keyResult.error!);
+          else if (!valueResult.success) errors.push(valueResult.error!);
+          else result[keyResult.data] = valueResult.data;
         }
 
         if (errors.length > 0) {
           return {
             success: false,
-            error: errors.length === 1
-              ? errors[0]
-              : new TshShapeError({
-                code: 'MULTIPLE_ERRORS',
-                message: 'Multiple validation errors',
-                value,
-                shape: this,
-                extra: { errors }
-              })
+            error: new TshShapeError({
+              code: 'RECORD_VALIDATION_ERROR',
+              message: 'Validation failed for record properties',
+              value,
+              shape: this,
+              extra: { errors }
+            })
           };
         }
 
-        return { success: true, value: result };
+        return { success: true };
       }
     });
   }
+
+  // === Extra Modifiers ===
+
   getDefaults(): TshViewer<Record<K, InferShapeType<V>>> {
-    if (typeof this._default !== 'undefined') {
-      return this._default as never;
-    }
+    if (this._default !== undefined) return this._default as never;
 
     const result: Record<any, any> = {};
-    const key: K = this._keyShape._default as K;
-    let value: InferShapeType<V>;
+    const keyDefault = this._keyShape._default as K;
+
+    let valueDefault: InferShapeType<V>;
 
     if (this._valueShape instanceof AbstractShape) {
-      value = typeof this._valueShape._default !== 'undefined'
-        ? this._valueShape._default
-        : 'getDefaults' in this._valueShape
-          ? (this._valueShape as any).getDefaults()
-          : {} as InferShapeType<V>;
+      if (this._valueShape._default !== undefined) {
+        valueDefault = this._valueShape._default;
+      } else if ('getDefaults' in this._valueShape) {
+        valueDefault = (this._valueShape as any).getDefaults();
+      } else {
+        valueDefault = {} as InferShapeType<V>;
+      }
     } else {
-      value = this._valueShape;
+      valueDefault = this._valueShape;
     }
 
-    if (key) result[key] = value;
+    if (keyDefault) result[keyDefault] = valueDefault;
     return result as never;
   }
 
@@ -127,7 +88,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => Object.keys(val).length >= min,
       opts.message ?? `Record must have at least ${min} properties`,
       opts.code ?? 'TOO_FEW_PROPERTIES',
-      { ...opts?.extra ?? {}, min },
+      { ...opts.extra, min }
     );
   }
 
@@ -136,7 +97,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => Object.keys(val).length <= max,
       opts.message ?? `Record must have at most ${max} properties`,
       opts.code ?? 'TOO_MANY_PROPERTIES',
-      { ...opts?.extra ?? {}, max },
+      { ...opts.extra, max }
     );
   }
 
@@ -145,7 +106,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => Object.keys(val).length === count,
       opts.message ?? `Record must have exactly ${count} properties`,
       opts.code ?? 'INVALID_PROPERTY_COUNT',
-      { ...opts?.extra ?? {}, count },
+      { ...opts.extra, count }
     );
   }
 
@@ -154,7 +115,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => key in val,
       opts.message ?? `Record must have property "${String(key)}"`,
       opts.code ?? 'MISSING_PROPERTY',
-      { ...opts?.extra ?? {}, },
+      opts.extra
     );
   }
 
@@ -163,7 +124,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => !(key in val),
       opts.message ?? `Record must not have property "${String(key)}"`,
       opts.code ?? 'FORBIDDEN_PROPERTY',
-      { ...opts?.extra ?? {}, },
+      opts.extra
     );
   }
 
@@ -172,16 +133,24 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => key in val && validator(val[key]),
       opts.message ?? `Property "${String(key)}" is invalid`,
       opts.code ?? 'INVALID_PROPERTY_VALUE',
-      { ...opts?.extra ?? {}, },
+      opts.extra
     );
   }
 
   propertyShape(key: K, shape: AbstractShape<any>, opts: TshOptions = {}): this {
     return this.refine(
-      (val) => key in val && shape.parse(val[key]) === val[key],
+      (val) => {
+        if (!(key in val)) return false;
+        try {
+          shape.parse(val[key]);
+          return true;
+        } catch {
+          return false;
+        }
+      },
       opts.message ?? `Property "${String(key)}" has invalid shape`,
       opts.code ?? 'INVALID_PROPERTY_SHAPE',
-      { ...opts?.extra ?? {}, },
+      opts.extra
     );
   }
 
@@ -194,7 +163,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => Object.keys(val).every(validator),
       opts.message ?? 'Some property names are invalid',
       opts.code ?? 'INVALID_PROPERTY_NAMES',
-      { ...opts?.extra ?? {} },
+      opts.extra
     );
   }
 
@@ -203,7 +172,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       (val) => Object.values(val).every(validator as never),
       opts.message ?? 'Some property values are invalid',
       opts.code ?? 'INVALID_PROPERTY_VALUES',
-      { ...opts?.extra ?? {} },
+      opts.extra
     );
   }
 
@@ -227,7 +196,7 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
       },
       opts.message ?? 'Record shape does not match required structure',
       opts.code ?? 'INVALID_RECORD_SHAPE',
-      { ...opts?.extra ?? {}, requiredShape: shape },
+      { ...opts.extra, requiredShape: shape }
     );
   }
 }

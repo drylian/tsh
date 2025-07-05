@@ -24,7 +24,8 @@ export class NumberShape<Type extends number = number> extends AbstractShape<Typ
 
   constructor() {
     super({
-      sync: (value) => {
+      type:"number",
+      primitiveFn: (value) => {
         if (typeof value === "number") {
           return { success: true };
         }

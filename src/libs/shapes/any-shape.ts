@@ -5,7 +5,8 @@ export class AnyShape<AnyType extends any = any> extends AbstractShape<AnyType> 
 
     constructor() {
         super({
-            sync: (value) => {
+            type:"any",
+            primitiveFn: (value) => {
                 if (typeof value === "undefined" && typeof this._default !== "undefined") {
                     return { success: true, value: this._default };
                 }

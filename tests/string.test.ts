@@ -27,7 +27,7 @@ describe("StringShape", () => {
   test("string with default", () => {
     const schema = t.string().default("default");
     expect(schema.parse("hello")).toBe("hello");
-    expect(() => schema.parse(undefined)).toThrow("Missing required value for string");
+    expect(() => schema.parse(undefined)).toThrow("Missing required value for \"string\"");
     expect(() => schema.parse(null)).toThrow();
   });
 
@@ -35,7 +35,7 @@ describe("StringShape", () => {
     const schema = t.string().coerce();
     expect(schema.parse(123)).toBe("123");
     expect(schema.parse(true)).toBe("true");
-    expect(schema.parse(null)).toBe("");
+    expect(schema.parse(null)).toThrow();
     expect(schema.parse(undefined)).toBe("");
     expect(schema.parse({ a: 1 })).toBe('{"a":1}');
   });

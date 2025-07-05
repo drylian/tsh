@@ -8,7 +8,8 @@ export class EnumShape<T extends (string | number | boolean)> extends AbstractSh
 
   constructor(values: readonly T[]) {
     super({
-      sync: (value) => {
+      type:"enum",
+      primitiveFn: (value) => {
         if (values.includes(value as T)) {
           return { success: true };
         }

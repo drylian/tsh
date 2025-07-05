@@ -10,7 +10,9 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
 
   constructor(public readonly _shape: T) {
     super({
-      sync: (value) => {
+      type:"array",
+      //@ts-expect-error Async declarations
+      primitiveFn: (value) => {
         const path = this._key !== "abstract" ? this._key : this._type || 'array';
 
         if (!Array.isArray(value)) {

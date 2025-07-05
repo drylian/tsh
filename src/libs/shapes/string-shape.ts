@@ -24,7 +24,8 @@ export class StringShape<Type extends string = string> extends AbstractShape<Typ
   private _coerce = false;
   constructor() {
     super({
-      sync: (value) => {
+      type:"string",
+      primitiveFn: (value) => {
         if (typeof value === "string") {
           return { success: true };
         }

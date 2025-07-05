@@ -13,11 +13,14 @@ export class BooleanShape<Type extends boolean = boolean> extends AbstractShape<
   
   constructor() {
     super({
-      sync: (value) => {
-        if (typeof value === "boolean") {
+      type:"boolean",
+      primitiveFn: (value) => {
+        if (typeof value === "boolean"
+          || typeof value === "undefined" && this._optional
+          || value == null && this._nullable
+        ) {
           return { success: true };
         }
-
         return {
           success: false,
           error: new TshShapeError({

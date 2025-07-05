@@ -28,7 +28,7 @@ describe("ArrayShape", () => {
   test("array with default", () => {
     const schema = t.array(t.string()).default(["default"]);
     expect(schema.parse(["a"])).toEqual(["a"]);
-    expect(() => schema.parse(undefined)).toThrow('Missing required value for array');
+    expect(() => schema.parse(undefined)).toThrow('Missing required value for "array"');
     expect(() => schema.parse(null)).toThrow();
   });
 
