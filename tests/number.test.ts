@@ -27,7 +27,7 @@ describe("NumberShape", () => {
   test("number with default", () => {
     const schema = t.number().default(42);
     expect(schema.parse(10)).toBe(10);
-    expect(() => schema.parse(undefined)).toThrow('Expected a number')
+    expect(() => schema.parse(undefined)).toThrow('Missing required value for \"number\"')
     expect(() => schema.parse(null)).toThrow();
   });
 
@@ -36,8 +36,8 @@ describe("NumberShape", () => {
     expect(schema.parse("42")).toBe(42);
     expect(schema.parse(true)).toBe(1);
     expect(schema.parse(false)).toBe(0);
-    expect(schema.parse(null)).toBe(0);
-    expect(schema.parse(undefined)).toBe(0);
+    expect(() =>schema.parse(null)).toThrow();
+    expect(() => schema.parse(undefined)).toThrow();
     expect(schema.parse("not a number")).toBe(0);
   });
 

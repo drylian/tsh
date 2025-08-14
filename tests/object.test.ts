@@ -26,7 +26,7 @@ describe("ObjectShape", () => {
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
     expect(schema.parse(undefined)).toBeUndefined();
-    expect(() => schema.parse(null)).toThrow('Value cannot be null');
+    expect(() => schema.parse(null)).toThrow('Missing required value for \"object\"');
   });
 
   test("nullable object", () => {
@@ -37,7 +37,7 @@ describe("ObjectShape", () => {
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
     console.log(schema.parse(null));
     expect(schema.parse(null)).toBeNull();
-    expect(() => schema.parse(undefined)).toThrow('expected a object');
+    expect(() => schema.parse(undefined)).toThrow('Missing required value for \"object\"');
   });
 
   test("object with default", () => {
@@ -46,7 +46,7 @@ describe("ObjectShape", () => {
     }).default({ name: "Default" });
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
-    expect(() => schema.parse(undefined)).toThrow('expected a object');
+    expect(() => schema.parse(undefined)).toThrow('Missing required value for \"object\"');
     expect(() => schema.parse(null)).toThrow();
   });
 
@@ -74,7 +74,7 @@ describe("ObjectShape", () => {
     const invalid = { tags: "not an array" };
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid)).toThrow('Expected a array');
+    expect(() => schema.parse(invalid)).toThrow('Validation failed array - Expected an array (path: array.tags)');
   });
 
   test("partial object", () => {
@@ -156,7 +156,7 @@ describe("ObjectShape", () => {
     }).forbiddenProperty("secret" as never);
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
-    expect(() => schema.parse({ name: "John", secret: "data" })).toThrow('Object must not have property "secret"');
+    expect(() => schema.parse({ name: "John", secret: "data" })).toThrow('Forbidden property \"secret\"');
   });
 
   test("exactProperties", () => {
@@ -171,7 +171,7 @@ describe("ObjectShape", () => {
 
     expect(schema.parse(valid)).toEqual(valid);
     expect(() => schema.parse(invalid1)).toThrow('Missing required value for \"age\"');
-    expect(() => schema.parse(invalid2)).toThrow('Object must have exactly 2 properties');
+    expect(() => schema.parse(invalid2)).toThrow('Must have exactly 2 properties');
   });
 
   test("minProperties", () => {
@@ -213,7 +213,7 @@ describe("ObjectShape", () => {
     const invalid = { age: 15 };
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid)).toThrow('Property "age" is invalid');
+    expect(() => schema.parse(invalid)).toThrow('Invalid value for property \"age\"');
   });
 
   test("nonEmpty", () => {
@@ -225,7 +225,7 @@ describe("ObjectShape", () => {
     const invalid = {};
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid)).toThrow('Object must have at least 1 properties');
+    expect(() => schema.parse(invalid)).toThrow('Validation failed Missing required value for \"name\"');
   });
 
   test("complex nested structure", () => {

@@ -35,8 +35,8 @@ describe("StringShape", () => {
     const schema = t.string().coerce();
     expect(schema.parse(123)).toBe("123");
     expect(schema.parse(true)).toBe("true");
-    expect(schema.parse(null)).toThrow();
-    expect(schema.parse(undefined)).toBe("");
+    expect(() => schema.parse(null)).toThrow();
+    expect(() => schema.parse(undefined)).toThrow();
     expect(schema.parse({ a: 1 })).toBe('{"a":1}');
   });
 
