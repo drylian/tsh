@@ -10,7 +10,7 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
     private readonly _shape: T;
 
     constructor(_shape: T) {
-    super({ primitiveFn: () => ({ success: true }) });
+    super({ type:"object", primitiveFn: () => ({ success: true }) });
     this._shape = _shape;
 
     this._primitiveFn = (value) => {
@@ -70,86 +70,57 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
       const input = value as Record<string, unknown>;
       const defaults = this.getDefaults();
       const result: Record<string, unknown> = {};
-      const errors: TshShapeError[] = [];
 
-      Object.keys(this._shape).forEach((key) => {
+      for (const key of Object.keys(this._shape)) {
         const shape = this._shape[key];
+        shape._path = [...this._path, key];
 
-        shape.withPath(key, () => {
-          if (isPartial && !(key in input)) return;
+        if (isPartial && !(key in input)) continue;
 
-          let val = input[key];
+        let val = input[key];
 
-          if (val && typeof val === "object" && !Array.isArray(val) && defaults[key]) {
-            val = { ...defaults[key], ...val };
-          }
+        if (val && typeof val === "object" && !Array.isArray(val) && defaults[key]) {
+          val = { ...defaults[key], ...val };
+        }
 
-          if (val === undefined) {
-            if (shape._optional) return;
-            errors.push(new TshShapeError({
-              code: 'REQUIRED',
-              message: `Missing required value`,
-              path: shape._path,
-              value: val,
-              extra:  {
-                expectedType: shape._type
-              }
-            }));
-            return;
-          }
-
-          if (val === null) {
-            if (shape._nullable) {
-              result[key] = null;
-              return;
+        if (val === undefined) {
+          if (shape._optional) continue;
+          throw new TshShapeError({
+            code: 'REQUIRED',
+            message: `Missing required value`,
+            path: shape._path,
+            value: val,
+            extra:  {
+              expectedType: shape._type
             }
-            errors.push(new TshShapeError({
-              code: 'INVALID_TYPE',
-              message: `Expected ${shape._type}, got null`,
-              path: shape._path,
-              value: val,
-              extra:  {
-                expectedType: shape._type
-              }
-            }));
-            return;
+          });
+        }
+
+        if (val === null) {
+          if (shape._nullable) {
+            result[key] = null;
+            continue;
           }
+          throw new TshShapeError({
+            code: 'INVALID_TYPE',
+            message: `Expected ${shape._type}, got null`,
+            path: shape._path,
+            value: val,
+            extra:  {
+              expectedType: shape._type
+            }
+          });
+        }
 
-          const parsed = shape instanceof AbstractShape
-            ? shape.safeParse(val)
-            : { success: val === shape, value: val };
+        const parsed = shape instanceof AbstractShape
+          ? shape.safeParse(val)
+          : { success: val === shape, value: val };
 
-          if (!parsed.success) {
-            const error = parsed.error instanceof TshShapeError
-              ? parsed.error
-              : new TshShapeError({
-                code: 'VALIDATION_ERROR',
-                message: parsed.error?.message || `Invalid value`,
-                path: shape._path,
-                value: val,
-                extra: {
-                  expectedType: shape._type
-                }
-              });
-            errors.push(error);
-            return;
-          }
+        if (!parsed.success) {
+          throw parsed.error;
+        }
 
-          result[key] = parsed.value;
-        });
-      });
-
-      if (errors.length > 0) {
-        return {
-          success: false,
-          error: new TshShapeError({
-            code: 'MULTIPLE_ERRORS',
-            message: `Validation failed ${errors.map(a => a.message).join("\n")}`,
-            path: this._path,
-            details: errors,
-            value
-          })
-        };
+        result[key] = parsed.value;
       }
 
       const resultKeys = Object.keys(result);
@@ -157,31 +128,25 @@ export class ObjectShape<T extends Record<string, PrimitiveShapes>> extends Abst
       const maxProps = this._maxProperties;
 
       if (minProps !== undefined && resultKeys.length < minProps) {
-        return {
-          success: false,
-          error: new TshShapeError({
-            code: 'MIN_PROPERTIES',
-            message: `Must have at least ${minProps} properties`,
-            path: this._path,
-            value,
-            min: minProps,
-            actual: resultKeys.length
-          })
-        };
+        throw new TshShapeError({
+          code: 'MIN_PROPERTIES',
+          message: `Must have at least ${minProps} properties`,
+          path: this._path,
+          value,
+          min: minProps,
+          actual: resultKeys.length
+        });
       }
 
       if (maxProps !== undefined && resultKeys.length > maxProps) {
-        return {
-          success: false,
-          error: new TshShapeError({
-            code: 'MAX_PROPERTIES',
-            message: `Must have at most ${maxProps} properties`,
-            path: this._path,
-            value,
-            max: maxProps,
-            actual: resultKeys.length
-          })
-        };
+        throw new TshShapeError({
+          code: 'MAX_PROPERTIES',
+          message: `Must have at most ${maxProps} properties`,
+          path: this._path,
+          value,
+          max: maxProps,
+          actual: resultKeys.length
+        });
       }
 
       return { success: true, value: result as InferShapeType<T> };

@@ -12,6 +12,7 @@ type AnyFnCallback =
 
 export class AbstractShape<T> {
     protected _primitiveFn?: (value: unknown) => AnyFnCallback;
+    protected _primitiveSyncFn?: (value: unknown) => Exclude<AnyFnCallback, Promise<any>>;
     protected _coerceFn?: (value: unknown) => unknown;
     public _default?: T;
     public _type: string;
@@ -24,10 +25,12 @@ export class AbstractShape<T> {
 
     constructor(validators?: {
         primitiveFn?: (value: unknown) => AnyFnCallback;
+        primitiveSyncFn?: (value: unknown) => Exclude<AnyFnCallback, Promise<any>>;
         coerceFn?: (value: unknown) => unknown;
         type?: string;
     }) {
         this._primitiveFn = validators?.primitiveFn;
+        this._primitiveSyncFn = validators?.primitiveSyncFn;
         this._coerceFn = validators?.coerceFn;
         this._type = validators?.type ?? "abstract";
         this._key = this.defKey();
@@ -88,7 +91,12 @@ export class AbstractShape<T> {
             throw this._createMissingError(finalValue);
         }
         if (finalValue === null && this._nullable) return this._mergeWithDefault(null);
-        if (this._primitiveFn) {
+        if (this._primitiveSyncFn) {
+            const result = this._primitiveSyncFn(finalValue);
+            if (!result.success && result.error) {
+                throw result.error;
+            }
+        } else if (this._primitiveFn) {
             const result = this._primitiveFn(finalValue);
             if (result instanceof Promise) {
                 throw new TshShapeError({
@@ -192,7 +200,7 @@ export class AbstractShape<T> {
     private _validateBasicConstraints(value: unknown): TshShapeError[] {
         const errors: TshShapeError[] = [];
 
-        if (value === undefined && !this._optional) {
+        if (value === undefined && !this._optional && this._default === undefined) {
             errors.push(this._createMissingError(value));
         }
 
@@ -219,11 +227,21 @@ export class AbstractShape<T> {
     }
 
     private _mergeWithDefault(value: unknown): T {
-        if (this._default && typeof value === "object" && value !== null) {
-            return { ...(this._default as any), ...(value as any) };
+        if (this._default === undefined) return value as T;
+        if (value === undefined) return this._default as T;
+
+        if (Array.isArray(this._default) && Array.isArray(value)) {
+            return [...this._default, ...value] as T;
         }
+
+        if (typeof this._default === 'object' && this._default !== null &&
+            typeof value === 'object' && value !== null) {
+            return { ...this._default, ...value } as T;
+        }
+
         return value as T;
     }
+
 
     // === Modifiers ===
 
@@ -326,8 +344,10 @@ export class AbstractShape<T> {
         if (!clone._operations.first) {
             clone._operations = { first: newOp, last: newOp };
         } else {
-            clone._operations.last!.next = newOp;
-            clone._operations.last = newOp;
+            const newOperations = { ...clone._operations };
+            newOperations.last!.next = newOp;
+            newOperations.last = newOp;
+            clone._operations = newOperations;
         }
 
         return clone;
@@ -336,8 +356,10 @@ export class AbstractShape<T> {
     protected _clone(): this {
         const clone = Object.create(Object.getPrototypeOf(this)) as this;
         Object.assign(clone, this);
+
         clone._operations = { ...this._operations };
         clone._path = [...this._path];
+
         return clone;
     }
 
@@ -364,17 +386,9 @@ export class AbstractShape<T> {
     }
 
     protected _enhanceError(error: TshShapeError): TshShapeError {
-        if (error.path && error.path.length > 0) {
-            return error;
-        }
-
-        return new TshShapeError({
-            ...error,
-            path: [...this._path],
-            message: error.message.includes(this._path.join('.'))
-                ? error.message
-                : `${error.message} (path: ${this._path.join('.')})`,
-        });
+        error.path = [...this._path, ...(error.path ?? [])];
+        error.message = `${this._path.join('.')} - ${error.message}`;
+        return error;
     }
 
     public withPath<Related extends () => any>(subkey: string, cb: Related) {

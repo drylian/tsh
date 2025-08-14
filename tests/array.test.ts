@@ -28,7 +28,7 @@ describe("ArrayShape", () => {
   test("array with default", () => {
     const schema = t.array(t.string()).default(["default"]);
     expect(schema.parse(["a"])).toEqual(["a"]);
-    expect(() => schema.parse(undefined)).toThrow('Missing required value for "array"');
+    expect(schema.parse(undefined)).toEqual(["default"]);
     expect(() => schema.parse(null)).toThrow();
   });
 
@@ -130,8 +130,8 @@ describe("ArrayShape", () => {
       schema.parse([{ name: "John", age: "30" }]);
     } catch (error) {
       console.log(error.errors);
-      expect(error.errors[0].error).toContain("Expected a number");
-      expect(error.key).toBe("age");
+      expect(error.errors[0].message).toContain("age");
+      expect(error.errors[0].message).toContain("Expected a number");
     }
   });
 

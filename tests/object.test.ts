@@ -14,7 +14,7 @@ describe("ObjectShape", () => {
     const invalid3 = "not an object";
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid1)).toThrow('Missing required value for "age"');
+    expect(() => schema.parse(invalid1)).toThrow('object - Missing required value');
     expect(() => schema.parse(invalid2)).toThrow('Expected a number');
     expect(() => schema.parse(invalid3)).toThrow('Expected object');
   });
@@ -74,7 +74,7 @@ describe("ObjectShape", () => {
     const invalid = { tags: "not an array" };
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid)).toThrow('Validation failed array - Expected an array (path: array.tags)');
+    expect(() => schema.parse(invalid)).toThrow('object - object.tags - array - Expected an array');
   });
 
   test("partial object", () => {
@@ -106,7 +106,7 @@ describe("ObjectShape", () => {
     const invalid = { name: "John" }; // missing age
 
     expect(merged.parse(valid)).toEqual(valid);
-    expect(() => merged.parse(invalid)).toThrow('Missing required value for "age"');
+    expect(() => merged.parse(invalid)).toThrow('object - Missing required value');
   });
 
   test("pick properties", () => {
@@ -121,7 +121,7 @@ describe("ObjectShape", () => {
     const valid2 = { name: "John", age: 30, email: "john@example.com" }; // extra property
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid1)).toThrow('Missing required value for "age"');
+    expect(() => schema.parse(invalid1)).toThrow('object - Missing required value');
     expect(schema.parse(valid2)).toEqual(valid2); // Extra properties should be stripped
   });
 
@@ -137,7 +137,7 @@ describe("ObjectShape", () => {
     const valid2 = { name: "John", age: 30, email: "john@example.com" }; // extra property
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid1)).toThrow('Missing required value for "age"');
+    expect(() => schema.parse(invalid1)).toThrow('object - Missing required value');
     expect(schema.parse(valid2)).toEqual(valid2); // Extra properties should be stripped
   });
 
@@ -147,7 +147,7 @@ describe("ObjectShape", () => {
     }).hasProperty("name");
 
     expect(schema.parse({ name: "John" })).toEqual({ name: "John" });
-    expect(() => schema.parse({})).toThrow('Missing required value for "name"');
+    expect(() => schema.parse({})).toThrow('object - Missing required value');
   });
 
   test("forbiddenProperty", () => {
@@ -170,7 +170,7 @@ describe("ObjectShape", () => {
     const invalid2 = { name: "John", age: 30, extra: "field" };
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid1)).toThrow('Missing required value for \"age\"');
+    expect(() => schema.parse(invalid1)).toThrow('object - Missing required value');
     expect(() => schema.parse(invalid2)).toThrow('Must have exactly 2 properties');
   });
 
@@ -225,7 +225,7 @@ describe("ObjectShape", () => {
     const invalid = {};
 
     expect(schema.parse(valid)).toEqual(valid);
-    expect(() => schema.parse(invalid)).toThrow('Validation failed Missing required value for \"name\"');
+    expect(() => schema.parse(invalid)).toThrow('object - Missing required value');
   });
 
   test("complex nested structure", () => {

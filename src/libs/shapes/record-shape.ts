@@ -53,6 +53,47 @@ export class RecordShape<K extends string | number | symbol, V extends AbstractS
         }
 
         return { success: true };
+      },
+      primitiveSyncFn: (value) => {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+          return {
+            success: false,
+            error: new TshShapeError({
+              code: 'NOT_OBJECT',
+              message: 'Expected an object',
+              value,
+              shape: this
+            })
+          };
+        }
+
+        const result: Record<any, any> = {};
+        const input = value as Record<any, unknown>;
+        const errors: TshShapeError[] = [];
+
+        for (const key of Object.keys(input)) {
+          const keyResult = this._keyShape.safeParse(key);
+          const valueResult = this._valueShape.safeParse(input[key]);
+
+          if (!keyResult.success) errors.push(keyResult.error!);
+          else if (!valueResult.success) errors.push(valueResult.error!);
+          else result[keyResult.data] = valueResult.data;
+        }
+
+        if (errors.length > 0) {
+          return {
+            success: false,
+            error: new TshShapeError({
+              code: 'RECORD_VALIDATION_ERROR',
+              message: 'Validation failed for record properties',
+              value,
+              shape: this,
+              extra: { errors }
+            })
+          };
+        }
+
+        return { success: true };
       }
     });
   }

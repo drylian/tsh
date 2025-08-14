@@ -21,7 +21,7 @@ export class ArrayShape<T extends AbstractShape<any>> extends AbstractShape<Infe
         }
 
         const errors: Error[] = [];
-        const output: unknown[] = [];
+        const output: InferShapeType<T>[] = [];
 
         value.forEach((item, index) => {
           const itemPath = `${path}[${index}]`;
